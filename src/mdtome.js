@@ -196,8 +196,7 @@ const createMarkdownRenderer = (config, type) => {
         return '';
       }
 
-      const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-');
-      return `<span class="header">${escapedText}</span>`;
+      return `<span class="header">${text}</span>`;
     };
   }
 
