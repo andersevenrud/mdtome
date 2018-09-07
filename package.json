@@ -1,6 +1,6 @@
 {
   "name": "mdtome",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Markdown Tome is a Gitbook clone",
   "main": "index.js",
   "scripts": {
@@ -45,5 +45,13 @@
     "stylelint-config-standard": "^18.2.0",
     "stylelint-scss": "^3.3.0",
     "webpack-cli": "^3.1.0"
+  },
+  "bugs": {
+    "url": "https://github.com/andersevenrud/mdtome/issues"
+  },
+  "homepage": "https://github.com/andersevenrud/mdtome#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andersevenrud/mdtome.git"
   }
 }

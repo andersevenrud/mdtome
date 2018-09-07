@@ -26,6 +26,7 @@ Create a file named `.mdtome`
 
 ```javascript
 module.exports = {
+  input: '.',
   template: {
     title: 'My Awesome Tome',
     hostname: 'http://my-website.com',
@@ -73,6 +74,12 @@ mdtome({
 * Localization support
 * PDF Generation
 * Plugins
+* Plugin: Typed quotes
+* Plugin: Google Analytics
+* Plugin: Google AdSense
+* Customization: CSS/JS entry points
+* UI: Finish responsive
+* UI: Highlight links based on scroll
 
 ## License
 
