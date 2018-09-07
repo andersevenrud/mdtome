@@ -29,6 +29,15 @@
  */
 @import "~highlight.js/styles/default.css";
 
+main,
+aside,
+section,
+article,
+footer,
+header {
+  display: block;
+}
+
 html,
 body {
   width: 100%;
