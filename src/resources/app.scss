@@ -43,8 +43,8 @@ body {
   line-height: 1;
   margin: 0;
   padding: 0;
-  display: flex;
   overflow: hidden;
+  background-color: #fff;
 }
 
 aside,
@@ -59,10 +59,11 @@ main {
 
 aside {
   background: #fafafa;
-  min-width: 200px;
   white-space: nowrap;
   color: #364149;
   font-size: 0.9em;
+  position: relative;
+  z-index: 100;
 
   .header {
     text-transform: uppercase;
@@ -80,20 +81,19 @@ aside {
     margin: 0;
     padding: 0;
 
-    ul {
-      margin-left: 1em;
-
-      li {
-        padding: 0.5em;
-      }
+    li {
+      margin-top: 0.25em;
+      margin-bottom: 0.25em;
     }
-  }
 
-  & > ul {
-    margin-bottom: 1em;
+    ul {
+      li {
+        margin-left: 1em;
+      }
 
-    & > li {
-      margin-bottom: 0.5em;
+      ul {
+        margin-top: 0.5em;
+      }
     }
   }
 
@@ -104,7 +104,19 @@ aside {
 
 main {
   height: 100%;
-  flex: 1 1;
+  position: relative;
+  z-index: 10;
+
+  header {
+    display: flex;
+
+    .title {
+      flex: 1 1;
+      text-transform: uppercase;
+      font-size: 1.2em;
+      text-align: center;
+    }
+  }
 }
 
 article {
@@ -158,11 +170,11 @@ code {
 
 pre {
   font-size: inherit;
-  overflow: auto;
 
   code {
     padding: 1em;
     display: block;
+    overflow: auto;
   }
 }
 
@@ -173,4 +185,63 @@ blockquote {
   color: #858585;
   border-left: 4px solid #e5e5e5;
   font-size: inherit;
+}
+
+#hamburger {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 2em;
+  text-align: center;
+}
+
+@media (min-width: 800px) {
+  body {
+    display: flex;
+  }
+
+  aside {
+    min-width: 200px;
+  }
+
+  main {
+    flex: 1 1;
+  }
+
+  #hamburger {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  body {
+    font-size: 80%;
+
+    &:not(.menu-expanded) {
+      aside nav {
+        display: none;
+      }
+    }
+
+    &.menu-expanded {
+      aside {
+        width: 90%;
+        z-index: 999;
+      }
+    }
+  }
+
+  main {
+    margin-left: 2em;
+  }
+
+  aside {
+    position: absolute;
+    width: 0.2em;
+    transition: all 0.5s ease-in-out;
+
+    nav {
+      margin-top: 2em;
+    }
+  }
 }

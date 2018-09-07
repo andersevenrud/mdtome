@@ -33,6 +33,9 @@ module.exports = {
     }),
     ...plugins
   ],
+  output: {
+    path: path.resolve(__dirname, '_book')
+  },
   module: {
     rules: [
       {

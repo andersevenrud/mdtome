@@ -18,16 +18,19 @@
   </head>
 
   <body>
-    <aside>
+    <aside id="menu">
+      <div id="hamburger">&#9776;</div>
       <%- menu_before %>
-      <%- menu %>
+      <nav>
+        <%- menu %>
+      </nav>
       <%- menu_after %>
     </aside>
 
     <main>
       <header>
         <%- header_before %>
-        <div>
+        <div class="title">
           <%= baseTitle %>
         </div>
         <%- header_after %>

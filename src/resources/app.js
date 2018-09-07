@@ -28,3 +28,13 @@
  * @licence MIT
  */
 
+const init = () => {
+  const h = document.getElementById('hamburger');
+  const b = document.querySelector('body');
+
+  h.addEventListener('click', () => {
+    b.classList.toggle('menu-expanded');
+  });
+};
+
+window.addEventListener('DOMContentLoaded', init);
