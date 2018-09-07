@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="<%= language %>">
+  <head>
+    <meta charset="utf-8" />
+    <title><%= title %></title>
+    <link rel="shortcut icon" href="<%- basedir %>favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+
+    <% Object.keys(metadata).forEach(function(name) { %>
+      <% if (metadata[name]) { %>
+        <meta name="<%= name %>" content="<%= metadata[name] %>" />
+      <% } %>
+    <% }) %>
+
+    <% styles.forEach(function(style) { %>
+      <link href="<%- style %>" rel="stylesheet" />
+    <% }) %>
+  </head>
+
+  <body>
+    <aside>
+      <%- menu_before %>
+      <%- menu %>
+      <%- menu_after %>
+    </aside>
+
+    <main>
+      <header>
+        <%- header_before %>
+        <div>
+          <%= baseTitle %>
+        </div>
+        <%- header_after %>
+      </header>
+
+      <section>
+        <article>
+          <%- body_before %>
+          <%- body %>
+          <%- body_after %>
+        </article>
+      </section>
+    </main>
+
+    <% scripts.forEach(function(script) { %>
+      <script src="<%- script %>"></script>
+    <% }) %>
+  </body>
+</html>
