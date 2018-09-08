@@ -27,7 +27,7 @@
  * @author  Anders Evenrud <andersevenrud@gmail.com>
  * @licence MIT
  */
-const {readFile, writeFile, copy, ensureDir, mkdirp} = require('fs-extra');
+const {readFile, readFileSync, writeFile, copy, ensureDir, mkdirp} = require('fs-extra');
 const path = require('path');
 const mle = require('markdown-link-extractor');
 const hjs = require('highlight.js');
@@ -141,11 +141,6 @@ const resolveLink = (config, href) => href.match(/^https?:/)
 const uniqueFileList = list => union(list.map(str => str.match('#') ? str.substr(0, str.indexOf('#')) : str));
 
 /**
- * Reads the main template
- */
-const readTemplate = config => readFile(config.template.filename, 'utf8');
-
-/**
  * Sets the marked options
  */
 const setMarkedOptions = (config, context) => marked.setOptions({
@@ -214,7 +209,6 @@ const createMarkdownRenderer = (config, type) => {
  */
 const parseMarkdown = raw => {
   let str = raw.trim();
-  let title = '';
   let metadata = {};
 
   const matchMeta = str.match(/---[\r\n](.*)[\r\n]---/);
@@ -235,46 +229,92 @@ const parseMarkdown = raw => {
 
   const matchTitle = str.match(/^#(.*)/);
   if (matchTitle !== null) {
-    title = matchTitle[1].trim();
+    metadata.title = matchTitle[1].trim();
   }
 
-  return {metadata, title, markdown: marked(str)};
+  return {metadata, markdown: marked(str)};
+};
+
+/**
+ * Parses a gitbook summary
+ */
+const parseSummary = config => {
+  const filename = path.resolve(config.input, 'SUMMARY.md');
+
+  return readFile(filename, 'utf8')
+    .then(raw => {
+      const list = uniqueFileList(mle(raw));
+      return {
+        raw,
+        files: list.map(filename => {
+          const source = path.resolve(config.input, filename);
+          const destination = path.resolve(config.output, path.dirname(filename), 'index.html');
+
+          return {filename, source, destination};
+        })
+      };
+    });
+};
+
+/**
+ * Compiles a list of markdown compiled files to html
+ */
+const renderHtml = (config, plugins) => (template, menu, metadata, markdown) => {
+  const res = str => typeof str === 'function' ? str(config, metadata) : str;
+
+  const data = {
+    menu,
+    menu_before: '', // TODO
+    menu_after: '', // TODO
+    body: markdown,
+    body_before: '', // TODO
+    body_after: '', // TODO
+    header_before: '', // TODO
+    header_after: '', // TODO
+    basedir: config.template.basedir,
+    scripts: config.template.scripts.map(res),
+    styles: config.template.styles.map(res),
+    baseTitle: config.template.title,
+    language: config.template.language,
+    metadata: {
+      description: '',
+      ...config.template.metadata,
+      ...metadata
+    },
+    title: [metadata.title, config.template.title]
+      .filter(str => !!str)
+      .join(' - ')
+  };
+
+  const opts = {
+    async: true
+  };
+
+  return ejs.render(template, data, opts);
 };
 
 /**
  * Compiles the summary (menu)
  */
 const compileSummary = (config, plugins) => {
-  const filename = path.resolve(config.input, 'SUMMARY.md');
-
   setMarkedOptions(config, {
     renderer: createMarkdownRenderer(config, 'menu')
   });
 
-  return readFile(filename, 'utf8')
-    .then(raw => {
-      const list = mle(raw);
-      const files = uniqueFileList(list);
-      const menu = marked(raw);
-
-      return {files, menu};
-    });
+  return raw => marked(raw);
 };
 
 /**
  * Compiles a list of files to markdown
  */
-const compileMarkdown = (config, plugins, files) => {
+const compileMarkdown = (config, plugins) => (files, template, menu) => {
   setMarkedOptions(config, {
     renderer: createMarkdownRenderer(config, 'article'),
     highlight: code => hjs.highlightAuto(code).value,
   });
 
-  return files
-    .map(filename => {
-      const source = path.resolve(config.input, filename);
-      const destination = path.resolve(config.output, path.dirname(filename), 'index.html');
-
+  const promises = files
+    .map(({source, destination, filename}) => {
       return readFile(source, 'utf8')
         .then(raw => {
           if (config.verbose) {
@@ -283,63 +323,16 @@ const compileMarkdown = (config, plugins, files) => {
 
           return raw;
         })
+
         .then(raw => parseMarkdown(raw))
-        .then(result => ({source, destination, ...result}));
+        .then(({metadata, markdown}) => {
+          return renderHtml(config, plugins)(template, menu, metadata, markdown)
+            .then(html => ({source, destination, metadata, markdown, html}));
+        });
     });
+
+  return Promise.all(promises);
 };
-
-/**
- * Compiles a list of markdown compiled files to html
- */
-const compileHtml = (config, plugins, template, menu, parsed) => parsed
-  .map(iter => {
-    const res = str => typeof str === 'function' ? str(config, iter) : str;
-    const data = {
-      menu,
-      menu_before: '', // TODO
-      menu_after: '', // TODO
-      body: iter.markdown,
-      body_before: '', // TODO
-      body_after: '', // TODO
-      header_before: '', // TODO
-      header_after: '', // TODO
-      basedir: config.template.basedir,
-      scripts: config.template.scripts.map(res),
-      styles: config.template.styles.map(res),
-      baseTitle: config.template.title,
-      language: config.template.language,
-      metadata: {
-        description: '',
-        ...config.template.metadata,
-        ...iter.metadata
-      },
-      title: [iter.title || iter.metadata.title, config.template.title]
-        .filter(str => !!str)
-        .join(' - ')
-    };
-
-    const opts = {
-      async: true
-    };
-
-    return ejs.render(template, data, opts)
-      .then(html => ({...iter, html}));
-  });
-
-/**
- * Writes the final compiled result into the destination
- */
-const writeResults = (config, results) => results
-  .map(({source, destination, html}) => {
-    return mkdirp(path.dirname(destination))
-      .then(() => writeFile(destination, production ? minify(html, config.minify) : html))
-      .then(() => {
-        signale.success('Wrote', destination.replace(config.output, '').replace(/^\/|\\/, ''));
-      })
-      .catch(err => {
-        signale.error(err);
-      });
-  });
 
 /**
  * Copies a set of static resources into our destination
@@ -374,13 +367,13 @@ const copyResources = config => {
 };
 
 /**
- * Writes our sitemap
+ * Build: Sitemap
  */
-const writeSitemap = (config, plugins, files) => {
+const buildSitemap = (config, plugins) => (files) => {
   const {enabled, priority, changefreq} = config.sitemap;
 
   if (enabled) {
-    const list = union(files.map(f => resolveLink(config, f))
+    const list = union(files.map(({filename}) => resolveLink(config, filename))
       .filter(href => href.match(/^(https?:|.|#)/) !== null))
       .map(href => config.template.hostname + href);
 
@@ -409,6 +402,9 @@ const writeSitemap = (config, plugins, files) => {
   return Promise.resolve(true);
 };
 
+/**
+ * Build: Webpack
+ */
 const buildWebpack = (config) => {
   const webpackConfig = require(path.resolve(__dirname, '../webpack.config.js'));
   webpackConfig.output = webpackConfig.output || {};
@@ -423,27 +419,47 @@ const buildWebpack = (config) => {
   });
 };
 
+/**
+ * Build: Site
+ */
+const buildSite = (config, plugins) => (files, template, menu) => {
+  return compileMarkdown(config, plugins)(files, template, menu)
+    .then(results => {
+      return Promise.all(results.map(result => {
+        const {destination, html} = result;
+
+        return mkdirp(path.dirname(destination))
+          .then(() => writeFile(destination, production ? minify(html, config.minify) : html))
+          .then(() => {
+            signale.success('Wrote', destination.replace(config.output, '').replace(/^\/|\\/, ''));
+          })
+          .catch(err => {
+            signale.error(err);
+          });
+      }));
+    });
+};
+
 /*
  * Main Application
  */
 module.exports = (cfg = {}) => {
   const config = createConfig({...cfg});
+  const template = readFileSync(config.template.filename, 'utf8');
 
   return ensureDir(config.output)
-    .then(() => buildWebpack(config))
-    .then(stats => console.log(stats))
-    .then(() => copyResources(config))
     .then(() => initializePlugins(config))
     .then(plugins => {
-      return readTemplate(config)
-        .then(template => {
-          return compileSummary(config, plugins)
-            .then(({files, menu}) => {
-              return writeSitemap(config, plugins, files)
-                .then(() => Promise.all(compileMarkdown(config, plugins, files)))
-                .then(markdown => Promise.all(compileHtml(config, plugins, template, menu, markdown)))
-                .then(html => Promise.all(writeResults(config, html)));
-            });
+      return parseSummary(config)
+        .then(({files, raw}) => {
+          const menu = compileSummary(config, plugins)(raw);
+
+          return Promise.all([
+            buildSitemap(config, plugins)(files),
+            buildWebpack(config).then(stats => console.log(stats.toString())),
+            buildSite(config, plugins)(files, template, menu),
+            copyResources(config)
+          ]);
         });
     });
 };
