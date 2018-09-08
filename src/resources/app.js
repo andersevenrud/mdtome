@@ -49,6 +49,10 @@ const fetchDb = () => {
         cache = json;
         busy = false;
         return cache;
+      })
+      .catch(error => {
+        console.warn(error);
+        busy = false;
       });
 
     return busy;
@@ -56,7 +60,9 @@ const fetchDb = () => {
 };
 
 const filter = (list, query) => list.filter(iter => {
-  const x = [iter.title.toLowerCase(), iter.description.toLowerCase()]
+  const x = [iter.title, iter.description]
+    .filter(str => typeof str === 'string')
+    .map(str => str.toLowerCase())
     .filter(str => str.match(query.toLowerCase()));
 
   return x.length > 0;

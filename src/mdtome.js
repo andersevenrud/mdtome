@@ -232,7 +232,7 @@ const parseMarkdown = raw => {
     str = str.replace(/---[\r\n](.*)[\r\n]---/, '').trim();
   }
 
-  const matchTitle = str.match(/^#(.*)/);
+  const matchTitle = str.match(/^#+ (.*)/);
   if (matchTitle !== null) {
     metadata.title = matchTitle[1].trim();
   }
@@ -505,8 +505,8 @@ module.exports = (cfg = {}) => {
               .then(({results, copy}) => {
                 return Promise.all([
                   copyResources(config, copy),
-                  buildSearchDatabase(config, plugins)
-                ])
+                  buildSearchDatabase(config, plugins)(results)
+                ]);
               })
           ]);
         });
