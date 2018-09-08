@@ -29,7 +29,7 @@
  */
 const {readFile, readFileSync, writeJson, writeFile, copy, ensureDir, mkdirp} = require('fs-extra');
 const path = require('path');
-const mle = require('markdown-link-extractor');
+const fg = require('fast-glob');
 const hjs = require('highlight.js');
 const ejs = require('ejs');
 const yaml = require('js-yaml');
@@ -139,11 +139,6 @@ const resolveLink = (config, href) => href.match(/^https?:/)
   : resolveInternalLink(config, href);
 
 /**
- * Creates a unique list of files
- */
-const uniqueFileList = list => union(list.map(str => str.match('#') ? str.substr(0, str.indexOf('#')) : str));
-
-/**
  * Sets the marked options
  */
 const setMarkedOptions = (config, context) => marked.setOptions({
@@ -245,24 +240,25 @@ const parseMarkdown = raw => {
  */
 const parseSummary = config => {
   const filename = path.resolve(config.input, 'SUMMARY.md');
+  const filter = str => str !== 'SUMMARY.md';
 
   return readFile(filename, 'utf8')
     .then(raw => {
-      const list = uniqueFileList([
-        'README.md',
-        ...mle(raw)
-      ]);
+      return fg('**/*.md', {cwd: config.input, ignore: ['node_modules']})
+        .then(list => {
+          signale.info('Found', list.length, 'markdown files');
 
-      return {
-        raw,
-        files: list.map(filename => {
-          const source = path.resolve(config.input, filename);
-          const newname = resolveFilename(config, filename);
-          const destination = path.resolve(config.output, newname);
+          return {
+            raw,
+            files: list.filter(filter).map(filename => {
+              const source = path.resolve(config.input, filename);
+              const newname = resolveFilename(config, filename);
+              const destination = path.resolve(config.output, newname);
 
-          return {filename, source, destination};
-        })
-      };
+              return {filename, source, destination};
+            })
+          };
+        });
     });
 };
 
@@ -355,6 +351,8 @@ const copyResources = (config, external) => {
       return {destination, source};
     })
     .concat(external);
+
+  signale.info('Found', list.length, 'resources');
 
   return list.map(({source, destination}) => {
     const filename = path.relative(config.input, source);
