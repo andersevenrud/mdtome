@@ -110,15 +110,19 @@ const createConfig = config => {
 };
 
 /**
+ * Resolves filenames
+ */
+const resolveFilename = (config, name) => name
+  .replace(/\.md$/, '.html')
+  .replace('README.html', 'index.html');
+
+/**
  * Resolves an internal link
  */
 const resolveInternalLink = (config, href) => {
   const [name, hash] = href.split('#');
-
   const h = hash ? `#${hash}` : '';
-  const n = name
-    .replace(/(README\.md)$/, '')
-    .replace(/\/(\w+)\.md$/, '/$1.html');
+  const n = resolveFilename(config, name);
 
   if (['#', '.'].indexOf(n.substr(0, 1)) !== -1) {
     return n + h;
@@ -197,7 +201,9 @@ const createMarkdownRenderer = (config, type) => {
 
   // Resolves link URLs
   renderer.link = (href, title, text) => {
-    const newHref = resolveLink(config, href);
+    const newHref = resolveLink(config, href)
+      .replace('index.html', '');
+
     return `<a href="${newHref}" title="${title}">${text}</a>`;
   };
 
@@ -243,16 +249,17 @@ const parseSummary = config => {
 
   return readFile(filename, 'utf8')
     .then(raw => {
-      const list = uniqueFileList(mle(raw));
+      const list = uniqueFileList([
+        'README.md',
+        ...mle(raw)
+      ]);
+
       return {
         raw,
         files: list.map(filename => {
           const source = path.resolve(config.input, filename);
-          const newname = filename
-            .replace(/\.md$/, '.html')
-            .replace('README.html', 'index.html');
-
-          const destination = path.resolve(config.output, path.dirname(filename), newname);
+          const newname = resolveFilename(config, filename);
+          const destination = path.resolve(config.output, newname);
 
           return {filename, source, destination};
         })
@@ -327,12 +334,12 @@ const compileMarkdown = (config, plugins) => (files, template, menu) => {
 
           return raw;
         })
-
         .then(raw => parseMarkdown(raw))
         .then(({metadata, markdown}) => {
           return renderHtml(config, plugins)(template, menu, metadata, markdown)
             .then(html => ({filename, source, destination, metadata, markdown, html}));
-        });
+        })
+        .catch(e => signale.warn(e));
     });
 
   return Promise.all(promises);
