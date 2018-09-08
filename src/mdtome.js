@@ -39,7 +39,6 @@ const signale = require('signale');
 const deepmerge = require('deepmerge');
 const xmlbuilder = require('xmlbuilder');
 const webpack = require('webpack');
-const fg = require('fast-glob');
 const root = process.cwd();
 const npm = require(path.resolve(__dirname, '../package.json'));
 const production = process.env.NODE_ENV === 'production';
@@ -238,7 +237,7 @@ const parseMarkdown = raw => {
     metadata.title = matchTitle[1].trim();
   }
 
-  return {metadata, markdown: marked(str)};
+  return {metadata, markdown: str, parsed: marked(str)};
 };
 
 /**
@@ -335,8 +334,8 @@ const compileMarkdown = (config, plugins) => (files, template, menu) => {
           return raw;
         })
         .then(raw => parseMarkdown(raw))
-        .then(({metadata, markdown}) => {
-          return renderHtml(config, plugins)(template, menu, metadata, markdown)
+        .then(({metadata, markdown, parsed}) => {
+          return renderHtml(config, plugins)(template, menu, metadata, parsed)
             .then(html => ({filename, source, destination, metadata, markdown, html}));
         })
         .catch(e => signale.warn(e));
@@ -348,33 +347,22 @@ const compileMarkdown = (config, plugins) => (files, template, menu) => {
 /**
  * Copies a set of static resources into our destination
  */
-const copyResources = config => {
-  const internal = config.template.resources
+const copyResources = (config, external) => {
+  const list = config.template.resources
     .map(filename => {
       const source = path.resolve(__dirname, 'resources', filename);
-      return {source, filename};
-    });
+      const destination = path.resolve(config.output, filename);
+      return {destination, source};
+    })
+    .concat(external);
 
-  const external = () => fg([
-    '**/*',
-    '!**/*.md',
-    '!**/_layouts',
-    '!**/_book',
-    '!**/node_modules',
-  ], {cwd: config.input})
-    .then(list => list.map(filename => {
-      const source = path.resolve(config.input, filename);
-      return {source, filename};
-    }));
+  return list.map(({source, destination}) => {
+    const filename = path.relative(config.input, source);
 
-  return external()
-    .then(list => {
-      return [...list, ...internal].map(({source, filename}) => {
-        return copy(source, path.resolve(config.output, filename))
-          .then(() => signale.success('Copied', filename))
-          .catch(e => signale.warn('Failed to copy', filename, e));
-      });
-    });
+    return copy(source, destination)
+      .then(() => signale.success('Copied', filename))
+      .catch(e => signale.warn('Failed to copy', filename, e));
+  });
 };
 
 /**
@@ -436,6 +424,31 @@ const buildWebpack = (config) => {
 const buildSite = (config, plugins) => (files, template, menu) => {
   return compileMarkdown(config, plugins)(files, template, menu)
     .then(results => {
+      const urls = results
+        .map(({source, markdown}) => {
+          const hrefs = (markdown.match(/!\[[^\]]+\]\([^)]+\)/g) || [])
+            .map(str => str.match(/!\[[^\]]+\]\(([^)]+)\)/)[1])
+            .filter(str => !!str && str.match(/^https?:/) === null);
+
+          return hrefs.length > 0 ? {hrefs, source} : null;
+        })
+        .filter(result => !!result);
+
+      const resources = urls.map(({hrefs, source}) => {
+        return union(hrefs.map(str => {
+          const dir = path.dirname(source);
+          const original = path.resolve(dir, str);
+          const relative = path.relative(config.input, original);
+
+          return {
+            source: original,
+            destination: path.resolve(config.output, relative)
+          };
+        }));
+      });
+
+      const copy = [].concat(...resources);
+
       return Promise.all(results.map(result => {
         const {destination, metadata, filename, html} = result;
 
@@ -448,7 +461,8 @@ const buildSite = (config, plugins) => (files, template, menu) => {
           .catch(err => {
             signale.error(err);
           });
-      }));
+      }))
+        .then(results => ({results, copy}));
     });
 };
 
@@ -483,10 +497,17 @@ module.exports = (cfg = {}) => {
 
           return Promise.all([
             buildSitemap(config, plugins)(files),
-            buildWebpack(config).then(stats => console.log(stats.toString())),
+
+            buildWebpack(config)
+              .then(stats => console.log(stats.toString())),
+
             buildSite(config, plugins)(files, template, menu)
-              .then(buildSearchDatabase(config, plugins)),
-            copyResources(config)
+              .then(({results, copy}) => {
+                return Promise.all([
+                  copyResources(config, copy),
+                  buildSearchDatabase(config, plugins)
+                ])
+              })
           ]);
         });
     });
