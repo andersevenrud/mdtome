@@ -118,10 +118,14 @@ const resolveFilename = (config, name) => name
 /**
  * Resolves an internal link
  */
-const resolveInternalLink = (config, href) => {
+const resolveInternalLink = (config, href, strip = false) => {
   const [name, hash] = href.split('#');
   const h = hash ? `#${hash}` : '';
-  const n = resolveFilename(config, name);
+
+  let n = resolveFilename(config, name);
+  if (strip) {
+    n = n.replace('index.html', '');
+  }
 
   if (['#', '.'].indexOf(n.substr(0, 1)) !== -1) {
     return n + h;
@@ -134,9 +138,9 @@ const resolveInternalLink = (config, href) => {
 /**
  * Resolves a href link
  */
-const resolveLink = (config, href) => href.match(/^https?:/)
+const resolveLink = (config, href, strip = false) => href.match(/^https?:/)
   ? href
-  : resolveInternalLink(config, href);
+  : resolveInternalLink(config, href, strip);
 
 /**
  * Sets the marked options
@@ -195,9 +199,7 @@ const createMarkdownRenderer = (config, type) => {
 
   // Resolves link URLs
   renderer.link = (href, title, text) => {
-    const newHref = resolveLink(config, href)
-      .replace('index.html', '');
-
+    const newHref = resolveLink(config, href, true);
     return `<a href="${newHref}" title="${title}">${text}</a>`;
   };
 
@@ -470,7 +472,7 @@ const buildSite = (config, plugins) => (files, template, menu) => {
 const buildSearchDatabase = (config, plugins) => files => {
   const destination = path.resolve(config.output, 'search.json');
   const json = files.map(iter => ({
-    href: resolveInternalLink(config, iter.filename),
+    href: resolveInternalLink(config, iter.filename, true),
     ...iter.metadata
   }));
 
