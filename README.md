@@ -37,6 +37,8 @@ module.exports = {
 
 See `index.js -> createConfig()` for a full list of options. *TODO: Add table here*
 
+*Regular `book.json` file is also supported, but will not allow you to make any customization.*
+
 ## Usage
 
 The generated output will be in `_book/` by default.

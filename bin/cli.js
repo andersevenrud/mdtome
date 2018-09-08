@@ -31,12 +31,15 @@ const mdtome = require('../src/mdtome.js');
 const signale = require('signale');
 const minimist = require('minimist');
 const path = require('path');
-const {existsSync} = require('fs-extra');
+const {existsSync, readJsonSync} = require('fs-extra');
 
 const root = process.cwd();
-const cfg = path.resolve(root, '.mdtome');
-const hasConfig = existsSync(cfg);
-const configuration = hasConfig ? require(cfg) : {};
+const configFilename = path.resolve(root, '.mdtome');
+const bookFilename = path.resolve(root, 'book.json');
+const hasConfig = existsSync(configFilename);
+const hasBook = existsSync(bookFilename);
+const configuration = hasConfig ? require(configFilename) : {};
+const book = hasBook ? readJsonSync(bookFilename) : {};
 const argv = options => minimist(process.argv.slice(2), options);
 const clean = options => Object.keys(options)
   .filter(key => typeof options[key] !== 'undefined')
@@ -53,9 +56,15 @@ const {verbose, input, output, watch} = argv({
 // Create config for mdtome
 const config = clean({
   verbose,
-  input,
+  input: input || book.root,
   output,
   watch,
+  template: {
+    title: book.title || path.basename(process.cwd()),
+    metadata: {
+      description: book.description || ''
+    }
+  },
   ...configuration
 });
 
