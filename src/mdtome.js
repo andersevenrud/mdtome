@@ -248,7 +248,11 @@ const parseSummary = config => {
         raw,
         files: list.map(filename => {
           const source = path.resolve(config.input, filename);
-          const destination = path.resolve(config.output, path.dirname(filename), 'index.html');
+          const newname = filename
+            .replace(/\.md$/, '.html')
+            .replace('README.html', 'index.html');
+
+          const destination = path.resolve(config.output, path.dirname(filename), newname);
 
           return {filename, source, destination};
         })
