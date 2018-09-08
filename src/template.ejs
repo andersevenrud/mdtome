@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="<%= language %>">
+<html lang="<%= language %>" data-basedir="<%- basedir %>">
   <head>
     <meta charset="utf-8" />
     <title><%= title %></title>
@@ -19,7 +19,9 @@
 
   <body>
     <aside id="menu">
-      <div id="hamburger">&#9776;</div>
+      <div id="search">
+      </div>
+
       <%- menu_before %>
       <nav>
         <%- menu %>
@@ -31,16 +33,22 @@
       <header>
         <%- header_before %>
         <div class="title">
-          <%= baseTitle %>
+          <span><%= baseTitle %></span>
+        </div>
+        <div id="hamburger">
+          <span>&#9776;</span>
         </div>
         <%- header_after %>
       </header>
 
       <section>
-        <article>
+        <article id="article">
           <%- body_before %>
           <%- body %>
           <%- body_after %>
+        </article>
+
+        <article id="search-results">
         </article>
       </section>
     </main>

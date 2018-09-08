@@ -27,14 +27,110 @@
  * @author  Anders Evenrud <andersevenrud@gmail.com>
  * @licence MIT
  */
+import {h, app} from 'hyperapp';
+
+const basedir = document.querySelector('html')
+  .getAttribute('data-basedir');
+
+const fetchDb = () => {
+  let cache;
+  let busy = false;
+
+  return () => {
+    if (busy) {
+      return busy;
+    } else if (cache) {
+      return Promise.resolve(cache);
+    }
+
+    busy = fetch((basedir + '/search.json').replace(/\/+/, '/'))
+      .then(response => response.json())
+      .then(json => {
+        cache = json;
+        busy = false;
+        return cache;
+      });
+
+    return busy;
+  };
+};
+
+const filter = (list, query) => list.filter(iter => {
+  const x = [iter.title.toLowerCase(), iter.description.toLowerCase()]
+    .filter(str => str.match(query.toLowerCase()));
+
+  return x.length > 0;
+});
 
 const init = () => {
-  const h = document.getElementById('hamburger');
+  const m = document.getElementById('hamburger');
+  const s = document.getElementById('search');
   const b = document.querySelector('body');
 
-  h.addEventListener('click', () => {
+  const store = fetchDb();
+  const main = document.querySelector('main');
+  const content = document.getElementById('article');
+  const results = document.getElementById('search-results');
+
+  m.addEventListener('click', () => {
     b.classList.toggle('menu-expanded');
   });
+
+  const view = (state, actions) => h('input', {
+    type: 'text',
+    placeholder: 'Type here to search...',
+    oninput: ev => actions.setInput(ev.target.value)
+  });
+
+  const searchApp = app({
+    open: false,
+    error: null,
+    results: []
+  }, {
+    setResults: results => state => ({error: null, results}),
+    setError: error => state => ({error, results: []}),
+    setOpen: open => state => {
+      if (open) {
+        content.style.display = 'none';
+        results.style.display = 'block';
+        main.scrollTop = 0;
+      } else {
+        content.style.display = 'block';
+        results.style.display = 'none';
+      }
+
+      return {open};
+    },
+  }, (state, actions) => {
+    return h('div', {}, [
+      h('h2', {}, 'Search results'),
+      h('p', {}, `Showing ${state.results.length} results`),
+      h('ol', {}, state.results.map(iter => h('li', {}, [
+        h('h3', {}, h('a', {href: iter.href}, iter.title)),
+        h('p', {}, iter.description)
+      ])))
+    ]);
+  }, results);
+
+  app({
+    input: '',
+  }, {
+    setInput: input => (state, actions) => {
+      const open = input.length > 0;
+
+      searchApp.setOpen(open);
+
+      actions.search();
+
+      return {input};
+    },
+
+    search: () => (state, actions) => {
+      store()
+        .then(db => searchApp.setResults(filter(db, state.input)))
+        .catch(error => searchApp.setError(error));
+    }
+  }, view, s);
 };
 
 window.addEventListener('DOMContentLoaded', init);

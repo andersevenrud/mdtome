@@ -27,7 +27,7 @@
  * @author  Anders Evenrud <andersevenrud@gmail.com>
  * @licence MIT
  */
-const {readFile, readFileSync, writeFile, copy, ensureDir, mkdirp} = require('fs-extra');
+const {readFile, readFileSync, writeJson, writeFile, copy, ensureDir, mkdirp} = require('fs-extra');
 const path = require('path');
 const mle = require('markdown-link-extractor');
 const hjs = require('highlight.js');
@@ -327,7 +327,7 @@ const compileMarkdown = (config, plugins) => (files, template, menu) => {
         .then(raw => parseMarkdown(raw))
         .then(({metadata, markdown}) => {
           return renderHtml(config, plugins)(template, menu, metadata, markdown)
-            .then(html => ({source, destination, metadata, markdown, html}));
+            .then(html => ({filename, source, destination, metadata, markdown, html}));
         });
     });
 
@@ -392,11 +392,11 @@ const buildSitemap = (config, plugins) => (files) => {
     });
 
     const sitemap = xml.end({pretty: true});
-    const filename = path.resolve(config.output, 'sitemap.xml');
+    const destination = path.resolve(config.output, 'sitemap.xml');
 
-    return writeFile(filename, sitemap)
+    return writeFile(destination, sitemap)
       .then(() => signale.success('Wrote sitemap.xml'))
-      .catch(e => signale.warn('Failed to write sitemap.xml'. e));
+      .catch(e => signale.warn('Failed to write sitemap.xml', e));
   }
 
   return Promise.resolve(true);
@@ -426,18 +426,34 @@ const buildSite = (config, plugins) => (files, template, menu) => {
   return compileMarkdown(config, plugins)(files, template, menu)
     .then(results => {
       return Promise.all(results.map(result => {
-        const {destination, html} = result;
+        const {destination, metadata, filename, html} = result;
 
         return mkdirp(path.dirname(destination))
           .then(() => writeFile(destination, production ? minify(html, config.minify) : html))
           .then(() => {
             signale.success('Wrote', destination.replace(config.output, '').replace(/^\/|\\/, ''));
+            return {metadata, filename};
           })
           .catch(err => {
             signale.error(err);
           });
       }));
     });
+};
+
+/**
+ * Build: Search Database
+ */
+const buildSearchDatabase = (config, plugins) => files => {
+  const destination = path.resolve(config.output, 'search.json');
+  const json = files.map(iter => ({
+    href: resolveInternalLink(config, iter.filename),
+    ...iter.metadata
+  }));
+
+  return writeJson(destination, json)
+    .then(() => signale.success('Wrote search.json'))
+    .catch(e => signale.warn('Failed to write search.json', e));
 };
 
 /*
@@ -457,7 +473,8 @@ module.exports = (cfg = {}) => {
           return Promise.all([
             buildSitemap(config, plugins)(files),
             buildWebpack(config).then(stats => console.log(stats.toString())),
-            buildSite(config, plugins)(files, template, menu),
+            buildSite(config, plugins)(files, template, menu)
+              .then(buildSearchDatabase(config, plugins)),
             copyResources(config)
           ]);
         });

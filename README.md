@@ -78,7 +78,6 @@ mdtome({
 * Plugin: Google Analytics
 * Plugin: Google AdSense
 * Customization: CSS/JS entry points
-* UI: Finish responsive
 * UI: Highlight links based on scroll
 
 ## License
