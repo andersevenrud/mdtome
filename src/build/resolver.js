@@ -50,7 +50,7 @@ module.exports = config => {
     const h = hash ? `#${hash}` : '';
     const n = strip(name);
 
-    if (base.length > 0) {
+    if (base.length > 1) {
       // TODO: This needs to be more clever
       const dots = base.split('/') || [];
       const prefix = dots.map(() => '..').join('/');
