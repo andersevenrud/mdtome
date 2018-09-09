@@ -38,7 +38,7 @@ module.exports = {
   output: path.resolve(root, '_book'),
   verbose: false,
   watch: false,
-  logging: true,
+  logging: false,
   plugins: [],
   minify: {
     collapseWhitespace: true
