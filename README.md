@@ -67,6 +67,15 @@ mdtome({
 }) // -> Promise
 ```
 
+## Benchmarks
+
+Using https://github.com/bagder/everything-curl
+
+* Gitbook: `23.79s user 0.73s system 108% cpu 22.495 total`
+* mdtome: `4.18s user 0.18s system 110% cpu 3.952 total`
+
+System: i5-4670K + SSD
+
 ## TODO
 
 * Building: Watching
