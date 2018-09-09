@@ -76,10 +76,15 @@ const init = () => {
   const main = document.querySelector('main');
   const content = document.getElementById('article');
   const results = document.getElementById('search-results');
+  const links = document.querySelectorAll('#menu a');
 
   m.addEventListener('click', () => {
     b.classList.toggle('menu-expanded');
   });
+
+  Array.from(links).forEach(el => el.addEventListener('click', () => {
+    b.classList.remove('menu-expanded');
+  }));
 
   const view = (state, actions) => h('input', {
     type: 'text',
