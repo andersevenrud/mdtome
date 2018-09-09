@@ -29,8 +29,7 @@ module.exports = {
   input: '.',
   template: {
     title: 'My Awesome Tome',
-    hostname: 'http://my-website.com',
-    basedir: '/'
+    url: 'http://my-website.com'
   }
 };
 ```

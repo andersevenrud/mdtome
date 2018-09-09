@@ -27,13 +27,14 @@
  * @author  Anders Evenrud <andersevenrud@gmail.com>
  * @licence MIT
  */
-const {readFile, readFileSync, writeJson, writeFile, copy, ensureDir, mkdirp} = require('fs-extra');
+const {readFile, readFileSync, writeJson, writeFile, copy, ensureDir} = require('fs-extra');
 const path = require('path');
 const fg = require('fast-glob');
 const hjs = require('highlight.js');
 const ejs = require('ejs');
 const yaml = require('js-yaml');
 const marked = require('marked');
+const {Renderer} = marked;
 const minify = require('html-minifier').minify;
 const signale = require('signale');
 const deepmerge = require('deepmerge');
@@ -42,113 +43,53 @@ const webpack = require('webpack');
 const root = process.cwd();
 const npm = require(path.resolve(__dirname, '../package.json'));
 const production = process.env.NODE_ENV === 'production';
-const union = array => array.filter((elem, pos, arr) => arr.indexOf(elem) === pos);
 
 /**
  * Creates the mdtome config
  */
-const createConfig = config => {
-  const resolve = (base, link) => link.match(/^https?:/)
-    ? link
-    : base + link;
-
-  const defaults = {
-    input: path.resolve(root),
-    output: path.resolve(root, '_book'),
-    dist: path.resolve(__dirname, '..', 'dist'),
-    verbose: false,
-    watch: false,
-    plugins: [],
-    minify: {
-      collapseWhitespace: true
-    },
-    marked: {
-      breaks: false,
-      smartLists: true,
-      xhtml: true,
-    },
-    sitemap: {
-      enabled: true,
-      priority: 0.5,
-      changefreq: 'weekly'
-    },
-    template: {
-      title: 'mdtome',
-      hostname: 'http://localhost',
-      basedir: '/',
-      language: 'en',
-      filename: path.resolve(__dirname, 'template.ejs'),
-      scripts: [
-        'main.js'
-      ],
-      styles: [
-        'https://fonts.googleapis.com/css?family=Roboto:400,400i,700',
-        'https://fonts.googleapis.com/css?family=Roboto+Mono:400,700',
-        'main.css'
-      ],
-      resources: [
-        'favicon.ico'
-      ],
-      metadata: {
-        description: '',
-        author: '',
-        generator: `mdtome ${npm.version}`
-      }
+const createConfig = config => deepmerge({
+  input: path.resolve(root),
+  output: path.resolve(root, '_book'),
+  dist: path.resolve(__dirname, '..', 'dist'),
+  verbose: false,
+  watch: false,
+  plugins: [],
+  minify: {
+    collapseWhitespace: true
+  },
+  marked: {
+    breaks: false,
+    smartLists: true,
+    xhtml: true,
+  },
+  sitemap: {
+    enabled: true,
+    priority: 0.5,
+    changefreq: 'weekly'
+  },
+  template: {
+    title: 'mdtome',
+    url: 'http://localhost',
+    language: 'en',
+    filename: path.resolve(__dirname, 'template.ejs'),
+    scripts: [
+      'main.js'
+    ],
+    styles: [
+      'https://fonts.googleapis.com/css?family=Roboto:400,400i,700',
+      'https://fonts.googleapis.com/css?family=Roboto+Mono:400,700',
+      'main.css'
+    ],
+    resources: [
+      'favicon.ico'
+    ],
+    metadata: {
+      description: '',
+      author: '',
+      generator: `mdtome ${npm.version}`
     }
-  };
-
-  const result = deepmerge(defaults, config);
-  const {basedir, scripts, styles} = result.template;
-
-  Object.assign(result.template, {
-    scripts: scripts.map(s => resolve(basedir, s)),
-    styles: styles.map(s => resolve(basedir, s)),
-  });
-
-  return result;
-};
-
-/**
- * Resolves filenames
- */
-const resolveFilename = (config, name) => name
-  .replace(/\.md$/, '.html')
-  .replace('README.html', 'index.html');
-
-/**
- * Resolves an internal link
- */
-const resolveInternalLink = (config, href, strip = false) => {
-  const [name, hash] = href.split('#');
-  const h = hash ? `#${hash}` : '';
-
-  let n = resolveFilename(config, name);
-  if (strip) {
-    n = n.replace('index.html', '');
   }
-
-  if (['#', '.'].indexOf(n.substr(0, 1)) !== -1) {
-    return n + h;
-  }
-
-  const basedir = config.template.basedir.replace(/\/?$/, '/');
-  return basedir + n.replace(/^\/?/, '') + h;
-};
-
-/**
- * Resolves a href link
- */
-const resolveLink = (config, href, strip = false) => href.match(/^https?:/)
-  ? href
-  : resolveInternalLink(config, href, strip);
-
-/**
- * Sets the marked options
- */
-const setMarkedOptions = (config, context) => marked.setOptions({
-  ...config.marked,
-  ...context
-});
+}, config);
 
 /**
  * Initializes plugins
@@ -181,94 +122,13 @@ const initializePlugins = config => {
 };
 
 /**
- * Creates the Markdown renderer instance
- */
-const createMarkdownRenderer = (config, type) => {
-  const renderer = new marked.Renderer();
-
-  if (type === 'menu') {
-    // Makes sure headings are rendered as non-header HTML elements
-    renderer.heading = (text, level) => {
-      if (level === 1) {
-        return '';
-      }
-
-      return `<span class="header">${text}</span>`;
-    };
-  }
-
-  // Resolves link URLs
-  renderer.link = (href, title, text) => {
-    const newHref = resolveLink(config, href, true);
-    return `<a href="${newHref}" title="${title}">${text}</a>`;
-  };
-
-  return renderer;
-};
-
-/**
- * Parses a markdown, including YAML metadata
- */
-const parseMarkdown = raw => {
-  let str = raw.trim();
-  let metadata = {};
-
-  const matchMeta = str.match(/---[\r\n](.*)[\r\n]---/);
-  if (matchMeta !== null) {
-    const ystr = matchMeta.splice(1, matchMeta.length - 1)
-      .map(str => str.trim())
-      .filter(str => str.length > 0)
-      .join('\n');
-
-    try {
-      metadata = yaml.safeLoad(ystr);
-    } catch (e) {
-      signale.error(e);
-    }
-
-    str = str.replace(/---[\r\n](.*)[\r\n]---/, '').trim();
-  }
-
-  const matchTitle = str.match(/^#+ (.*)/);
-  if (matchTitle !== null) {
-    metadata.title = matchTitle[1].trim();
-  }
-
-  return {metadata, markdown: str, parsed: marked(str)};
-};
-
-/**
- * Parses a gitbook summary
- */
-const parseSummary = config => {
-  const filename = path.resolve(config.input, 'SUMMARY.md');
-  const filter = str => str !== 'SUMMARY.md';
-
-  return readFile(filename, 'utf8')
-    .then(raw => {
-      return fg('**/*.md', {cwd: config.input, ignore: ['node_modules']})
-        .then(list => {
-          signale.info('Found', list.length, 'markdown files');
-
-          return {
-            raw,
-            files: list.filter(filter).map(filename => {
-              const source = path.resolve(config.input, filename);
-              const newname = resolveFilename(config, filename);
-              const destination = path.resolve(config.output, newname);
-
-              return {filename, source, destination};
-            })
-          };
-        });
-    });
-};
-
-/**
  * Compiles a list of markdown compiled files to html
  */
-const renderHtml = (config, plugins) => (template, menu, metadata, markdown) => {
-  const res = str => typeof str === 'function' ? str(config, metadata) : str;
+const renderHtml = (config, resolver, plugins) => base => (template, menu, metadata, markdown) => {
+  const res = str => resolver.link(
+    typeof str === 'function' ? str(config, metadata) : str,
+    base
+  );
 
   const data = {
     menu,
@@ -279,7 +139,6 @@ const renderHtml = (config, plugins) => (template, menu, metadata, markdown) => 
     body_after: '', // TODO
     header_before: '', // TODO
     header_after: '', // TODO
-    basedir: config.template.basedir,
     scripts: config.template.scripts.map(res),
     styles: config.template.styles.map(res),
     baseTitle: config.template.title,
@@ -302,213 +161,357 @@ const renderHtml = (config, plugins) => (template, menu, metadata, markdown) => 
 };
 
 /**
- * Compiles the summary (menu)
+ * Generator: Sitemap
  */
-const compileSummary = (config, plugins) => {
-  setMarkedOptions(config, {
-    renderer: createMarkdownRenderer(config, 'menu')
-  });
-
-  return raw => marked(raw);
-};
-
-/**
- * Compiles a list of files to markdown
- */
-const compileMarkdown = (config, plugins) => (files, template, menu) => {
-  setMarkedOptions(config, {
-    renderer: createMarkdownRenderer(config, 'article'),
-    highlight: code => hjs.highlightAuto(code).value,
-  });
-
-  const promises = files
-    .map(({source, destination, filename}) => {
-      return readFile(source, 'utf8')
-        .then(raw => {
-          if (config.verbose) {
-            signale.await('Parsing', filename);
-          }
-
-          return raw;
-        })
-        .then(raw => parseMarkdown(raw))
-        .then(({metadata, markdown, parsed}) => {
-          return renderHtml(config, plugins)(template, menu, metadata, parsed)
-            .then(html => ({filename, source, destination, metadata, markdown, html}));
-        })
-        .catch(e => signale.warn(e));
-    });
-
-  return Promise.all(promises);
-};
-
-/**
- * Copies a set of static resources into our destination
- */
-const copyResources = (config, external) => {
-  const list = config.template.resources
-    .map(filename => {
-      const source = path.resolve(__dirname, 'resources', filename);
-      const destination = path.resolve(config.output, filename);
-      return {destination, source};
-    })
-    .concat(external);
-
-  signale.info('Found', list.length, 'resources');
-
-  return list.map(({source, destination}) => {
-    const filename = path.relative(config.input, source);
-
-    return copy(source, destination)
-      .then(() => signale.success('Copied', filename))
-      .catch(e => signale.warn('Failed to copy', filename, e));
-  });
-};
-
-/**
- * Build: Sitemap
- */
-const buildSitemap = (config, plugins) => (files) => {
+const buildSitemap = (config, resolver) => {
   const {enabled, priority, changefreq} = config.sitemap;
+  const destination = path.resolve(config.output, 'sitemap.xml');
 
-  if (enabled) {
-    const list = union(files.map(({filename}) => resolveLink(config, filename))
-      .filter(href => href.match(/^(https?:|.|#)/) !== null))
-      .map(href => config.template.hostname + href);
+  return input => {
+    if (enabled) {
+      const list = input.files.map(({filename}) => resolver.url(filename));
+      const xml = xmlbuilder.create('urlset');
+      xml.att('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+      xml.att('xmlns:news', 'http://www.google.com/schemas/sitemap-news/0.9');
+      xml.att('xmlns:xhtml', 'http://www.w3.org/1999/xhtml');
+      xml.att('xmlns:mobile', 'http://www.google.com/schemas/sitemap-mobile/1.0');
+      xml.att('xmlns:image', 'http://www.google.com/schemas/sitemap-image/1.1');
 
-    const xml = xmlbuilder.create('urlset');
-    xml.att('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
-    xml.att('xmlns:news', 'http://www.google.com/schemas/sitemap-news/0.9');
-    xml.att('xmlns:xhtml', 'http://www.w3.org/1999/xhtml');
-    xml.att('xmlns:mobile', 'http://www.google.com/schemas/sitemap-mobile/1.0');
-    xml.att('xmlns:image', 'http://www.google.com/schemas/sitemap-image/1.1');
+      list.forEach(file => {
+        const el = xml.ele('url');
+        el.ele('loc', file);
+        el.ele('changefreq', changefreq);
+        el.ele('priority', String(priority));
+      });
 
-    list.forEach(file => {
-      const el = xml.ele('url');
-      el.ele('loc', file);
-      el.ele('changefreq', changefreq);
-      el.ele('priority', String(priority));
-    });
+      const sitemap = xml.end({pretty: true});
 
-    const sitemap = xml.end({pretty: true});
-    const destination = path.resolve(config.output, 'sitemap.xml');
+      return writeFile(destination, sitemap)
+        .then(() => signale.success('Wrote', path.relative(config.output, destination)))
+        .catch(e => signale.warn(e));
+    }
 
-    return writeFile(destination, sitemap)
-      .then(() => signale.success('Wrote sitemap.xml'))
-      .catch(e => signale.warn('Failed to write sitemap.xml', e));
-  }
-
-  return Promise.resolve(true);
+    return Promise.resolve(true);
+  };
 };
 
 /**
- * Build: Webpack
+ * Generator: Webpack
  */
-const buildWebpack = (config) => {
+const buildWebpack = config => {
   const webpackConfig = require(path.resolve(__dirname, '../webpack.config.js'));
   webpackConfig.output = webpackConfig.output || {};
   webpackConfig.output.path = path.resolve(config.output);
 
-  return new Promise((resolve, reject) => {
-    const compiler = webpack(webpackConfig);
+  return input => {
+    return new Promise((resolve, reject) => {
+      const compiler = webpack(webpackConfig);
 
-    compiler.run((err, stats) => {
-      return err ? reject(err) : resolve(stats.toString());
-    });
-  });
-};
-
-/**
- * Build: Site
- */
-const buildSite = (config, plugins) => (files, template, menu) => {
-  return compileMarkdown(config, plugins)(files, template, menu)
-    .then(results => {
-      const urls = results
-        .map(({source, markdown}) => {
-          const hrefs = (markdown.match(/!\[[^\]]+\]\([^)]+\)/g) || [])
-            .map(str => str.match(/!\[[^\]]+\]\(([^)]+)\)/)[1])
-            .filter(str => !!str && str.match(/^https?:/) === null);
-
-          return hrefs.length > 0 ? {hrefs, source} : null;
-        })
-        .filter(result => !!result);
-
-      const resources = urls.map(({hrefs, source}) => {
-        return union(hrefs.map(str => {
-          const dir = path.dirname(source);
-          const original = path.resolve(dir, str);
-          const relative = path.relative(config.input, original);
-
-          return {
-            source: original,
-            destination: path.resolve(config.output, relative)
-          };
-        }));
+      compiler.run((err, stats) => {
+        return err ? reject(err) : resolve(stats.toString());
       });
-
-      const copy = [].concat(...resources);
-
-      return Promise.all(results.map(result => {
-        const {destination, metadata, filename, html} = result;
-
-        return mkdirp(path.dirname(destination))
-          .then(() => writeFile(destination, production ? minify(html, config.minify) : html))
-          .then(() => {
-            signale.success('Wrote', destination.replace(config.output, '').replace(/^\/|\\/, ''));
-            return {metadata, filename};
-          })
-          .catch(err => {
-            signale.error(err);
-          });
-      }))
-        .then(results => ({results, copy}));
-    });
+    })
+      .then(stats => console.log(stats))
+      .then(() => input);
+  };
 };
 
 /**
- * Build: Search Database
+ * Generator: Static files
  */
-const buildSearchDatabase = (config, plugins) => files => {
+const buildStatic = config => {
+  return input => {
+    const promises = input.resources.map(resource => {
+      const source = path.resolve(config.input, resource);
+      const destination = path.resolve(config.output, resource);
+
+      return  ensureDir(path.dirname(destination))
+        .then(() => copy(source, destination))
+        .then(() => signale.success('Copied', path.relative(config.output, destination)))
+        .catch(e => signale.warn(e));
+    });
+
+    return Promise.all(promises)
+      .then(() => input);
+  };
+};
+
+/**
+ * Generator: Search Database
+ */
+const buildSearchDatabase = (config, resolver) => {
   const destination = path.resolve(config.output, 'search.json');
-  const json = files.map(iter => ({
-    href: resolveInternalLink(config, iter.filename, true),
-    ...iter.metadata
+
+  return input => {
+    const json = input.files.map((iter, index) => {
+      const {metadata} = input.parsed[index];
+
+      return {
+        href: resolver.url(iter.filename),
+        ...metadata
+      };
+    });
+
+    return writeJson(destination, json)
+      .then(() => signale.success('Wrote', path.relative(config.output, destination)))
+      .catch(e => signale.warn(e));
+  };
+};
+
+/**
+ * Resolver
+ */
+const createResolver = config => {
+  const strip = name => name
+    .replace(/^\/+/, '')
+    .replace(/\.md$/, '.html')
+    .replace('README.html', '');
+
+  const link = (str, base = '') => {
+    if (str.match(/^https?:/) !== null) {
+      return str;
+    }
+
+    const first = str.substr(0, 1);
+    if (first === '#') {
+      return str;
+    } else if (first === '.') {
+      return strip(str);
+    }
+
+    const [name, hash] = str.split('#');
+    const h = hash ? `#${hash}` : '';
+    const n = strip(name);
+
+    if (base.length > 0) {
+      // TODO: This needs to be more clever
+      const dots = base.split('/') || [];
+      const prefix = dots.map(() => '..').join('/');
+      const href = (prefix ? `${prefix}/` : prefix) + n;
+
+      return href + h;
+    }
+
+    return n + h;
+  };
+
+  const url = filename => {
+    const relative = link(filename);
+    return config.template.url.replace(/\/?$/, '/') + relative;
+  };
+
+  return {link, url};
+};
+
+/**
+ * Parser
+ */
+const createParser = (config, resolver, plugins) => {
+  const resources = [];
+  const renderer = new Renderer();
+  const originalLink = (...args) => Renderer.prototype.link.apply(renderer, args);
+  const originalHeading = (...args) => Renderer.prototype.heading.apply(renderer, args);
+  const originalImage = (...args) => Renderer.prototype.image.apply(renderer, args);
+
+  marked.setOptions({
+    ...config.marked,
+    highlight: code => hjs.highlightAuto(code).value,
+    renderer
+  });
+
+  const customHeading = (text, level) => {
+    if (level === 1) {
+      return '';
+    }
+
+    return `<span class="header">${text}</span>`;
+  };
+
+  const customLink = base => (href, title, text) => {
+    const newHref = resolver.link(href, base);
+
+    return originalLink(newHref, title, text);
+  };
+
+  const customImage = (base, dirname) => (href, title, text) => {
+    const newHref = resolver.link(href);
+
+    if (href.match(/^https?:/) === null) {
+      const original = path.resolve(dirname, href);
+      const relative = path.relative(config.input, original);
+
+      resources.push(relative);
+    }
+
+    return originalImage(newHref, title, text);
+  };
+
+  const extract = contents => {
+    const re = /---[\r\n](.*)[\r\n]---/;
+    let str = contents.trim();
+    let metadata = {};
+
+    const matchMeta = str.match(re);
+    if (matchMeta !== null) {
+      const ystr = matchMeta.splice(1, matchMeta.length - 1)
+        .map(str => str.trim())
+        .filter(str => str.length > 0)
+        .join('\n');
+
+      try {
+        metadata = yaml.safeLoad(ystr);
+      } catch (e) {
+        signale.error(e);
+      }
+
+      str = str.replace(re, '').trim();
+    }
+
+    const matchTitle = str.match(/^#+ (.*)/);
+    if (matchTitle !== null) {
+      metadata.title = matchTitle[1].trim();
+    }
+
+    return {metadata, str};
+  };
+
+  const parse = input => {
+    const parsed = input.files.map(({filename, source, contents}) => {
+      const {metadata, str} = extract(contents);
+      const base = path.dirname(filename);
+      const dirname = path.dirname(source);
+
+      renderer.link = customLink(base);
+      renderer.heading = customHeading;
+
+      const menu = marked(input.summary);
+
+      renderer.link = customLink(base);
+      renderer.image = customImage(base, dirname);
+      renderer.heading = originalHeading;
+
+      const markdown = marked(str);
+      return {menu, metadata, markdown};
+    });
+
+    return Promise.resolve({...input, parsed, resources});
+  };
+
+  const render = input => {
+    const promises = input.files.map((iter, index) => {
+      const base = path.dirname(iter.filename);
+
+      return renderHtml(config, resolver, plugins)(base)(
+        input.template,
+        input.parsed[index].menu,
+        input.parsed[index].metadata,
+        input.parsed[index].markdown
+      ).then(html => ({index, html}));
+    });
+
+    return Promise.all(promises)
+      .then(results => {
+        const html = input.files.map((iter, index) => {
+          const found = results.find(v => v.index === index);
+          return found ? found.html : '';
+        });
+
+        return {...input, html};
+      });
+  };
+
+  return {parse, render};
+};
+
+/**
+ * File Loader
+ */
+const createLoader = config => {
+  const fgp = '**/*.md';
+  const fgo = {cwd: config.input, ignore: ['SUMMARY.md', 'node_modules']};
+
+  const readFiles = list => Promise.all(list.map(filename => {
+    const source = path.resolve(config.input, filename);
+    const destination = path.resolve(config.output, filename)
+      .replace(/\.md$/, '.html')
+      .replace('README.html', 'index.html');
+
+    return readFile(source, 'utf8')
+      .then(contents => ({filename, source, destination, contents}));
   }));
 
-  return writeJson(destination, json)
-    .then(() => signale.success('Wrote search.json'))
-    .catch(e => signale.warn('Failed to write search.json', e));
+  const load = () => {
+    const template = readFileSync(config.template.filename, 'utf8');
+    const summary = readFileSync(path.resolve(config.input, 'SUMMARY.md'), 'utf8');
+
+    return fg(fgp, fgo)
+      .then(readFiles)
+      .then(files => ({files, template, summary}));
+  };
+
+  return {load};
 };
 
-/*
+/**
+ * Publisher Factory
+ */
+const createPublisher = config => {
+  const publish = input => {
+    const promises = input.files.map((file, index) => {
+      const html = input.html[index];
+      return ensureDir(path.dirname(file.destination))
+        .then(() => {
+          const contents = production ? minify(html, config.minify) : html;
+          return writeFile(file.destination, contents)
+            .then(() => signale.success('Wrote', path.relative(config.output, file.destination)))
+            .catch(e => signale.warn(e));
+        });
+    });
+
+    return Promise.all(promises)
+      .then(() => input);
+  };
+
+  return {publish};
+};
+
+/**
+ * Generator Factory
+ */
+const createGenerators = (config, resolver) => {
+  const generators = [
+    buildStatic(config, resolver),
+    buildSitemap(config, resolver),
+    buildSearchDatabase(config, resolver),
+    buildWebpack(config, resolver)
+  ];
+
+  const generate = input => Promise.all(generators.map(gen => {
+    return gen(input).then(() => input);
+  }));
+
+  return {generate};
+};
+
+/**
  * Main Application
  */
-module.exports = (cfg = {}) => {
+module.exports = (cfg) => {
   const config = createConfig({...cfg});
-  const template = readFileSync(config.template.filename, 'utf8');
 
-  return ensureDir(config.output)
-    .then(() => initializePlugins(config))
+  return initializePlugins(config)
     .then(plugins => {
-      return parseSummary(config)
-        .then(({files, raw}) => {
-          const menu = compileSummary(config, plugins)(raw);
+      const resolver = createResolver(config);
+      const loader = createLoader(config, resolver, plugins);
+      const parser = createParser(config, resolver, plugins);
+      const publisher = createPublisher(config, resolver, plugins);
+      const generators = createGenerators(config, resolver, plugins);
 
-          return Promise.all([
-            buildSitemap(config, plugins)(files),
-
-            buildWebpack(config)
-              .then(stats => console.log(stats.toString())),
-
-            buildSite(config, plugins)(files, template, menu)
-              .then(({results, copy}) => {
-                return Promise.all([
-                  copyResources(config, copy),
-                  buildSearchDatabase(config, plugins)(results)
-                ]);
-              })
-          ]);
-        });
+      return ensureDir(config.output)
+        .then(() => loader.load())
+        .then(parser.parse)
+        .then(parser.render)
+        .then(publisher.publish)
+        .then(generators.generate);
     });
 };

@@ -27,10 +27,9 @@
  * @author  Anders Evenrud <andersevenrud@gmail.com>
  * @licence MIT
  */
-import {h, app} from 'hyperapp';
+const SEARCH_FILE = window.location.origin.replace(/\/$/, '') + '/search.json';
 
-const basedir = document.querySelector('html')
-  .getAttribute('data-basedir');
+import {h, app} from 'hyperapp';
 
 const fetchDb = () => {
   let cache;
@@ -43,7 +42,7 @@ const fetchDb = () => {
       return Promise.resolve(cache);
     }
 
-    busy = fetch((basedir + '/search.json').replace(/\/+/, '/'))
+    busy = fetch(SEARCH_FILE)
       .then(response => response.json())
       .then(json => {
         cache = json;
