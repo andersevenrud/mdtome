@@ -70,7 +70,7 @@ const filter = (list, query) => list.filter(iter => {
 const init = () => {
   const m = document.getElementById('hamburger');
   const s = document.getElementById('search');
-  const b = document.querySelector('body');
+  const body = document.querySelector('body');
 
   const store = fetchDb();
   const main = document.querySelector('main');
@@ -79,18 +79,29 @@ const init = () => {
   const links = document.querySelectorAll('#menu a');
 
   m.addEventListener('click', () => {
-    b.classList.toggle('menu-expanded');
+    body.classList.toggle('menu-expanded');
   });
 
   Array.from(links).forEach(el => el.addEventListener('click', () => {
-    b.classList.remove('menu-expanded');
+    body.classList.remove('menu-expanded');
   }));
 
-  const view = (state, actions) => h('input', {
-    type: 'text',
-    placeholder: 'Type here to search...',
-    oninput: ev => actions.setInput(ev.target.value)
-  });
+  const view = (state, actions) => {
+    return h('div', {}, [
+      h('input', {
+        type: 'text',
+        placeholder: 'Type here to search...',
+        value: state.input,
+        oninput: ev => actions.setInput(ev.target.value)
+      }),
+      h('span', {
+        style: {
+          display: state.input.length > 0 ? 'block' : 'none'
+        },
+        onclick: () => actions.setInput('')
+      }, '✗')
+    ]);
+  };
 
   const searchApp = app({
     open: false,
@@ -127,6 +138,7 @@ const init = () => {
   }, {
     setInput: input => (state, actions) => {
       const open = input.length > 0;
+      body.classList.toggle('search-open', open);
 
       searchApp.setOpen(open);
 
