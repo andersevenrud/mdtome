@@ -27,60 +27,56 @@
  * @author  Anders Evenrud <andersevenrud@gmail.com>
  * @licence MIT
  */
-const signale = require('signale');
-const minimist = require('minimist');
 const path = require('path');
-const {existsSync, readJsonSync} = require('fs-extra');
-
-const mdtome = require('../src/mdtome.js');
-const defaultConfiguration = require('../src/config.js');
-
 const root = process.cwd();
-const configFilename = path.resolve(root, '.mdtome');
-const bookFilename = path.resolve(root, 'book.json');
-const hasConfig = existsSync(configFilename);
-const hasBook = existsSync(bookFilename);
-const configuration = hasConfig ? require(configFilename) : {};
-const book = hasBook ? readJsonSync(bookFilename) : {};
-const argv = options => minimist(process.argv.slice(2), options);
-const clean = options => Object.keys(options)
-  .filter(key => typeof options[key] !== 'undefined')
-  .reduce((result, key) => ({...result, [key]: options[key]}), {});
+const npm = require(path.resolve(__dirname, '../package.json'));
 
-// Get command-line arguments
-const {verbose, input, output, watch} = argv({
-  string: ['input', 'output'],
-  boolean: ['verbose', 'watch'],
-  alias: {i: 'input', o: 'output', v: 'verbose'},
-  default: {}
-});
-
-// Create config for mdtome
-const config = clean({
-  verbose,
-  input: input || book.root,
-  output,
-  watch,
+module.exports = {
+  input: path.resolve(root),
+  output: path.resolve(root, '_book'),
+  dist: path.resolve(__dirname, '..', 'dist'),
+  verbose: false,
+  watch: false,
+  plugins: [],
+  minify: {
+    collapseWhitespace: true
+  },
+  marked: {
+    breaks: false,
+    smartLists: true,
+    xhtml: true,
+  },
+  sitemap: {
+    enabled: true,
+    priority: 0.5,
+    changefreq: 'weekly'
+  },
   structure: {
-    ...defaultConfiguration.structure,
-    ...(book.structure || {})
+    readme: 'README.md',
+    summary: 'SUMMARY.md',
+    glossary: 'GLOSSARY.md',
+    languages: 'LANGS.md'
   },
   template: {
-    title: book.title || path.basename(process.cwd()),
+    title: 'mdtome',
+    url: 'http://localhost',
+    language: 'en',
+    filename: path.resolve(__dirname, 'template.ejs'),
+    scripts: [
+      'main.js'
+    ],
+    styles: [
+      'https://fonts.googleapis.com/css?family=Roboto:400,400i,700',
+      'https://fonts.googleapis.com/css?family=Roboto+Mono:400,700',
+      'main.css'
+    ],
+    resources: [
+      'favicon.ico'
+    ],
     metadata: {
-      description: book.description || ''
+      description: '',
+      author: '',
+      generator: `mdtome ${npm.version}`
     }
-  },
-  ...configuration
-});
-
-// Use the mdtome API
-mdtome(config)
-  .then(() => {
-    signale.success('Done');
-    process.exit(0);
-  })
-  .catch(error => {
-    signale.fatal(error);
-    process.exit(1);
-  });
+  }
+};

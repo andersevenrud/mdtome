@@ -34,7 +34,7 @@ module.exports = {
 };
 ```
 
-See `defaultConfiguration` in `src/mdtome.js` for a full list of options. *TODO: Add table here*
+See `src/config.js` for a full list of options. *TODO: Add table here*
 
 *Regular Gitbook `book.json` file is also supported, but will not allow you to make any customization.*
 
@@ -63,7 +63,7 @@ npx mdtome [--input=path] [--output=path] [--verbose]
 ```javascript
 const mdtome = require('mdtome');
 
-mdtome.generate({
+mdtome({
   /* Configuration options here */
   /* Same as the .mdtome file */
 }) // -> Promise
