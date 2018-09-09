@@ -36,6 +36,22 @@ const signale = require('signale');
 const {Renderer} = marked;
 
 /**
+ * Compiles a list of markdown compiled files to pdf
+ */
+const renderPdf = (config, resolver, plugins) => (template, pages) => {
+  const data = {
+    language: 'en',
+    title: config.title,
+    pages
+  };
+
+  const opts = {
+    async: true
+  };
+
+  return ejs.render(template, data, opts);
+};
+/**
  * Compiles a list of markdown compiled files to html
  */
 const renderHtml = (config, resolver, plugins) => base => (template, menu, metadata, markdown) => {
@@ -74,8 +90,9 @@ const renderHtml = (config, resolver, plugins) => base => (template, menu, metad
   return ejs.render(template, data, opts);
 };
 
-module.exports = (config, resolver, plugins) => {
+module.exports = (config, options, resolver, plugins) => {
   const resources = [];
+  const toc = [];
   const renderer = new Renderer();
   const originalLink = (...args) => Renderer.prototype.link.apply(renderer, args);
   const originalHeading = (...args) => Renderer.prototype.heading.apply(renderer, args);
@@ -95,8 +112,14 @@ module.exports = (config, resolver, plugins) => {
     return `<span class="header">${text}</span>`;
   };
 
-  const customLink = base => (href, title, text) => {
+  const customLink = (base, table) => (href, title, text) => {
     const newHref = resolver.link(href, base);
+    if (table) {
+      const [link] = href.split('#');
+      if (toc.indexOf(link) === -1) {
+        toc.push(link);
+      }
+    }
 
     return originalLink(newHref, title, text);
   };
@@ -149,12 +172,12 @@ module.exports = (config, resolver, plugins) => {
       const base = path.dirname(filename);
       const dirname = path.dirname(source);
 
-      renderer.link = customLink(base);
+      renderer.link = customLink(base, true);
       renderer.heading = customHeading;
 
       const menu = marked(input.summary);
 
-      renderer.link = customLink(base);
+      renderer.link = customLink(base, false);
       renderer.image = customImage(base, dirname);
       renderer.heading = originalHeading;
 
@@ -162,10 +185,28 @@ module.exports = (config, resolver, plugins) => {
       return {menu, metadata, markdown};
     });
 
-    return Promise.resolve({...input, parsed, resources});
+    return Promise.resolve({...input, parsed, toc, resources});
   };
 
   const render = input => {
+    if (options.pdf) {
+      const pages = input.toc.map(filename => {
+        const index = input.files.findIndex(iter => iter.filename === filename);
+        if (index === -1) {
+          signale.warn('Could not find page in TOC for', filename);
+          return '';
+        }
+
+        return input.parsed[index].markdown;
+      });
+
+      return renderPdf(config, resolver, plugins)(
+        input.template,
+        pages
+      )
+        .then(pdf => ({...input, pdf}));
+    }
+
     const promises = input.files.map((iter, index) => {
       const base = path.dirname(iter.filename);
 

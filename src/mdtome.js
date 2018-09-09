@@ -71,16 +71,17 @@ const initializePlugins = config => {
 /**
  * Main Application
  */
-module.exports = (cfg) => {
+module.exports = (cfg, opts = {}) => {
   const config = deepmerge(defaultConfiguration, cfg);
+  const options = {pdf: false, ...opts};
 
   return initializePlugins(config)
     .then(plugins => {
       const resolver = createResolver(config);
-      const loader = createLoader(config, resolver, plugins);
-      const parser = createParser(config, resolver, plugins);
-      const publisher = createPublisher(config, resolver, plugins);
-      const generators = createGenerators(config, resolver, plugins);
+      const loader = createLoader(config, options, resolver, plugins);
+      const parser = createParser(config, options, resolver, plugins);
+      const publisher = createPublisher(config, options, resolver, plugins);
+      const generators = createGenerators(config, options, resolver, plugins);
 
       return ensureDir(config.output)
         .then(() => loader.load())

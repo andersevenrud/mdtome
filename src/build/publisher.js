@@ -30,12 +30,45 @@
 const path = require('path');
 const signale = require('signale');
 const minify = require('html-minifier').minify;
+const puppeteer = require('puppeteer');
 const {ensureDir, writeFile} = require('fs-extra');
 
 const production = process.env.NODE_ENV === 'production';
 
-module.exports = config => {
+const createPdf = (html, destination) => puppeteer.launch({
+  args: ['--no-sandbox', '--disable-setuid-sandbox']
+})
+  .then(browser => {
+    return browser.newPage()
+      .then(page => {
+        return page.setContent(html)
+          .then(() => page.emulateMedia('screen'))
+          .then(() => page.pdf({
+            path: destination
+          }));
+      })
+      .then(result => {
+        browser.close();
+
+        return result;
+      });
+  });
+
+module.exports = (config, options) => {
   const publish = input => {
+
+    if (options.pdf) {
+      const destination = path.resolve(options.pdf);
+      return createPdf(input.pdf, destination)
+        .then(() => {
+          if (config.logging) {
+            signale.success('Wrote', options.pdf);
+          }
+
+          return input;
+        });
+    }
+
     const promises = input.files.map((file, index) => {
       const html = input.html[index];
       return ensureDir(path.dirname(file.destination))
@@ -44,7 +77,7 @@ module.exports = config => {
           return writeFile(file.destination, contents)
             .then(() => {
               if (config.logging) {
-                signale.success('Wrote', path.relative(config.output, file.destination))
+                signale.success('Wrote', path.relative(config.output, file.destination));
               }
             })
             .catch(e => signale.warn(e));

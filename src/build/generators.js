@@ -32,8 +32,8 @@ const buildWebpack = require('../generator/webpack.js');
 const buildSearchDatabase = require('../generator/search.js');
 const buildStatic = require('../generator/static.js');
 
-module.exports = (config, resolver) => {
-  const generators = [
+module.exports = (config, options, resolver) => {
+  const generators = options.pdf ? [] : [
     buildStatic(config, resolver),
     buildSitemap(config, resolver),
     buildSearchDatabase(config, resolver),

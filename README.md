@@ -7,6 +7,7 @@
 * Compatible with Gitbook structure(s)
 * Produces optimized builds
 * Creates sitemaps by default
+* Can generate PDFs
 
 ## Requirements
 
@@ -45,13 +46,13 @@ The generated output will be in `_book/` by default.
 Simply run this command in your project root directory:
 
 ```bash
-mdtome [--input=path] [--output=path] [--verbose]
+mdtome [--input=path] [--output=path] [--pdf=path] [--verbose]
 ```
 
 Or if you have mdtome as a dependency in your project:
 
 ```bash
-npx mdtome [--input=path] [--output=path] [--verbose]
+npx mdtome [--input=path] [--output=path] [--pdf=path] [--verbose]
 ```
 
 > Note, use `NODE_ENV=production mdtome ...` to make an optimized build.
@@ -81,7 +82,6 @@ System: i5-4670K + SSD
 * Building: Watching
 * Generation: Glossary
 * Generation: Languages
-* Generation: PDF
 * Plugin: Typed quotes
 * Plugin: Google Analytics
 * Plugin: Google AdSense

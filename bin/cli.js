@@ -48,8 +48,8 @@ const clean = options => Object.keys(options)
   .reduce((result, key) => ({...result, [key]: options[key]}), {});
 
 // Get command-line arguments
-const {verbose, input, output, watch} = argv({
-  string: ['input', 'output'],
+const {verbose, input, output, watch, pdf} = argv({
+  string: ['input', 'output', 'pdf'],
   boolean: ['verbose', 'watch'],
   alias: {i: 'input', o: 'output', v: 'verbose'},
   default: {}
@@ -76,7 +76,7 @@ const config = clean({
 });
 
 // Use the mdtome API
-mdtome(config)
+mdtome(config, {pdf})
   .then(() => {
     signale.success('Done');
     process.exit(0);

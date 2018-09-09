@@ -31,7 +31,7 @@ const path = require('path');
 const fg = require('fast-glob');
 const {readFile, readFileSync} = require('fs-extra');
 
-module.exports = config => {
+module.exports = (config, options) => {
   const fgp = '**/*.md';
   const fgo = {cwd: config.input, ignore: [
     config.structure.summary,
@@ -49,7 +49,10 @@ module.exports = config => {
   }));
 
   const load = () => {
-    const template = readFileSync(config.web.template, 'utf8');
+    const template = options.pdf
+      ? readFileSync(config.pdf.template, 'utf8')
+      : readFileSync(config.web.template, 'utf8');
+
     const summary = readFileSync(path.resolve(config.input, config.structure.summary), 'utf8');
 
     return fg(fgp, fgo)

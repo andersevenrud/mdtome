@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="<%= language %>">
+  <head>
+    <meta charset="utf-8" />
+    <title><%= title %></title>
+    <style type="text/css">
+body {
+  font-family: 'sans-serif';
+}
+article {
+  page-break-after: always;
+}
+blockquote,
+pre {
+  background-color: #e6e6e6;
+}
+a {
+  color: #0000ff;
+  text-decoration: none;
+}
+    </style>
+  </head>
+  <body>
+    <% pages.forEach(function(page) { %>
+      <article>
+        <%- page %>
+      </article>
+    <% }) %>
+  </body>
+</html>
