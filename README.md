@@ -34,9 +34,9 @@ module.exports = {
 };
 ```
 
-See `index.js -> createConfig()` for a full list of options. *TODO: Add table here*
+See `defaultConfiguration` in `src/mdtome.js` for a full list of options. *TODO: Add table here*
 
-*Regular `book.json` file is also supported, but will not allow you to make any customization.*
+*Regular Gitbook `book.json` file is also supported, but will not allow you to make any customization.*
 
 ## Usage
 
@@ -63,7 +63,7 @@ npx mdtome [--input=path] [--output=path] [--verbose]
 ```javascript
 const mdtome = require('mdtome');
 
-mdtome({
+mdtome.generate({
   /* Configuration options here */
   /* Same as the .mdtome file */
 }) // -> Promise
@@ -71,10 +71,10 @@ mdtome({
 
 ## TODO
 
-* Watching
-* Localization support
-* PDF Generation
-* Plugins
+* Building: Watching
+* Generation: Glossary
+* Generation: Languages
+* Generation: PDF
 * Plugin: Typed quotes
 * Plugin: Google Analytics
 * Plugin: Google AdSense

@@ -45,9 +45,9 @@ const npm = require(path.resolve(__dirname, '../package.json'));
 const production = process.env.NODE_ENV === 'production';
 
 /**
- * Creates the mdtome config
+ * Default configurtion
  */
-const createConfig = config => deepmerge({
+const defaultConfiguration = {
   input: path.resolve(root),
   output: path.resolve(root, '_book'),
   dist: path.resolve(__dirname, '..', 'dist'),
@@ -66,6 +66,12 @@ const createConfig = config => deepmerge({
     enabled: true,
     priority: 0.5,
     changefreq: 'weekly'
+  },
+  structure: {
+    readme: 'README.md',
+    summary: 'SUMMARY.md',
+    glossary: 'GLOSSARY.md',
+    languages: 'LANGS.md'
   },
   template: {
     title: 'mdtome',
@@ -89,7 +95,7 @@ const createConfig = config => deepmerge({
       generator: `mdtome ${npm.version}`
     }
   }
-}, config);
+};
 
 /**
  * Initializes plugins
@@ -265,7 +271,7 @@ const createResolver = config => {
   const strip = name => name
     .replace(/^\/+/, '')
     .replace(/\.md$/, '.html')
-    .replace('README.html', '');
+    .replace(config.structure.readme.replace('.md', '.html'), '');
 
   const link = (str, base = '') => {
     if (str.match(/^https?:/) !== null) {
@@ -428,7 +434,10 @@ const createParser = (config, resolver, plugins) => {
  */
 const createLoader = config => {
   const fgp = '**/*.md';
-  const fgo = {cwd: config.input, ignore: ['SUMMARY.md', 'node_modules']};
+  const fgo = {cwd: config.input, ignore: [
+    config.structure.summary,
+    'node_modules'
+  ]};
 
   const readFiles = list => Promise.all(list.map(filename => {
     const source = path.resolve(config.input, filename);
@@ -442,7 +451,7 @@ const createLoader = config => {
 
   const load = () => {
     const template = readFileSync(config.template.filename, 'utf8');
-    const summary = readFileSync(path.resolve(config.input, 'SUMMARY.md'), 'utf8');
+    const summary = readFileSync(path.resolve(config.input, config.structure.summary), 'utf8');
 
     return fg(fgp, fgo)
       .then(readFiles)
@@ -496,22 +505,25 @@ const createGenerators = (config, resolver) => {
 /**
  * Main Application
  */
-module.exports = (cfg) => {
-  const config = createConfig({...cfg});
+module.exports = {
+  defaultConfiguration,
+  generate: (cfg) => {
+    const config = deepmerge(defaultConfiguration, cfg);
 
-  return initializePlugins(config)
-    .then(plugins => {
-      const resolver = createResolver(config);
-      const loader = createLoader(config, resolver, plugins);
-      const parser = createParser(config, resolver, plugins);
-      const publisher = createPublisher(config, resolver, plugins);
-      const generators = createGenerators(config, resolver, plugins);
+    return initializePlugins(config)
+      .then(plugins => {
+        const resolver = createResolver(config);
+        const loader = createLoader(config, resolver, plugins);
+        const parser = createParser(config, resolver, plugins);
+        const publisher = createPublisher(config, resolver, plugins);
+        const generators = createGenerators(config, resolver, plugins);
 
-      return ensureDir(config.output)
-        .then(() => loader.load())
-        .then(parser.parse)
-        .then(parser.render)
-        .then(publisher.publish)
-        .then(generators.generate);
-    });
+        return ensureDir(config.output)
+          .then(() => loader.load())
+          .then(parser.parse)
+          .then(parser.render)
+          .then(publisher.publish)
+          .then(generators.generate);
+      });
+  }
 };

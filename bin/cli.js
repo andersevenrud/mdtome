@@ -27,7 +27,7 @@
  * @author  Anders Evenrud <andersevenrud@gmail.com>
  * @licence MIT
  */
-const mdtome = require('../src/mdtome.js');
+const {defaultConfiguration, generate} = require('../src/mdtome.js');
 const signale = require('signale');
 const minimist = require('minimist');
 const path = require('path');
@@ -59,6 +59,10 @@ const config = clean({
   input: input || book.root,
   output,
   watch,
+  structure: {
+    ...defaultConfiguration.structure,
+    ...(book.structure || {})
+  },
   template: {
     title: book.title || path.basename(process.cwd()),
     metadata: {
@@ -69,7 +73,7 @@ const config = clean({
 });
 
 // Use the mdtome API
-mdtome(config)
+generate(config)
   .then(() => {
     signale.success('Done');
     process.exit(0);
