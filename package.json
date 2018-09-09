@@ -1,6 +1,6 @@
 {
   "name": "mdtome",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Markdown Tome is a Gitbook clone",
   "main": "index.js",
   "scripts": {
@@ -8,6 +8,13 @@
     "eslint": "eslint *.js src/**/*.js",
     "stylelint": "stylelint *.scss src/**/*.scss"
   },
+  "files": [
+    "bin/",
+    "src/",
+    ".babelrc",
+    "README.md",
+    "webpack.config.js"
+  ],
   "bin": {
     "mdtome": "bin/cli.js"
   },
