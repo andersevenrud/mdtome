@@ -46,13 +46,13 @@ The generated output will be in `_book/` by default.
 Simply run this command in your project root directory:
 
 ```bash
-mdtome [--input=path] [--output=path] [--pdf=path] [--verbose]
+mdtome [--input=path] [--output=path] [--pdf=path] [--verbose] [--watch]
 ```
 
 Or if you have mdtome as a dependency in your project:
 
 ```bash
-npx mdtome [--input=path] [--output=path] [--pdf=path] [--verbose]
+npx mdtome [--input=path] [--output=path] [--pdf=path] [--verbose] [--watch]
 ```
 
 > Note, use `NODE_ENV=production mdtome ...` to make an optimized build.
@@ -79,7 +79,6 @@ System: i5-4670K + SSD
 
 ## TODO
 
-* Building: Watching
 * Generation: Glossary
 * Generation: Languages
 * Plugin: Typed quotes

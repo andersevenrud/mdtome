@@ -91,8 +91,9 @@ const renderHtml = (config, resolver, plugins) => base => (template, menu, metad
 };
 
 module.exports = (config, options, resolver, plugins) => {
-  const resources = [];
-  const toc = [];
+  let resources = [];
+  let toc = [];
+
   const renderer = new Renderer();
   const originalLink = (...args) => Renderer.prototype.link.apply(renderer, args);
   const originalHeading = (...args) => Renderer.prototype.heading.apply(renderer, args);
@@ -189,6 +190,9 @@ module.exports = (config, options, resolver, plugins) => {
   };
 
   const render = input => {
+    resources = [];
+    toc = [];
+
     if (options.pdf) {
       const pages = input.toc.map(filename => {
         const index = input.files.findIndex(iter => iter.filename === filename);

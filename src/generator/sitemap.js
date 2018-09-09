@@ -32,7 +32,7 @@ const xmlbuilder = require('xmlbuilder');
 const {writeFile} = require('fs-extra');
 const signale = require('signale');
 
-module.exports = (config, resolver) => {
+module.exports = (config, options, resolver) => {
   const {enabled, priority, changefreq} = config.sitemap;
   const destination = path.resolve(config.output, 'sitemap.xml');
 

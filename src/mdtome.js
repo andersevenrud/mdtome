@@ -28,6 +28,7 @@
  * @licence MIT
  */
 const signale = require('signale');
+const chokidar = require('chokidar');
 const deepmerge = require('deepmerge');
 const {ensureDir} = require('fs-extra');
 const defaultConfiguration = require('./config.js');
@@ -73,7 +74,11 @@ const initializePlugins = config => {
  */
 module.exports = (cfg, opts = {}) => {
   const config = deepmerge(defaultConfiguration, cfg);
-  const options = {pdf: false, ...opts};
+  const options = {verbose: false, watch: false, pdf: false, ...opts};
+
+  if (options.watch && options.pdf) {
+    options.watch = false;
+  }
 
   return initializePlugins(config)
     .then(plugins => {
@@ -83,11 +88,30 @@ module.exports = (cfg, opts = {}) => {
       const publisher = createPublisher(config, options, resolver, plugins);
       const generators = createGenerators(config, options, resolver, plugins);
 
-      return ensureDir(config.output)
-        .then(() => loader.load())
+      const run = (changed = []) => ensureDir(config.output)
+        .then(() => loader.load(changed))
         .then(parser.parse)
         .then(parser.render)
         .then(publisher.publish)
         .then(generators.generate);
+
+      if (options.watch) {
+        const watcher = chokidar.watch('**/*.md', {
+          ignored: /node_modules/,
+          cwd: config.input
+        });
+
+        watcher.on('change', filename => {
+          if (filename === 'SUMMARY.md') {
+            run();
+          } else {
+            run([filename]);
+          }
+        });
+
+        signale.watch('Watching files...');
+      }
+
+      return run();
     });
 };

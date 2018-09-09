@@ -31,7 +31,7 @@ const {writeJson} = require('fs-extra');
 const path = require('path');
 const signale = require('signale');
 
-module.exports = (config, resolver) => {
+module.exports = (config, options, resolver) => {
   const destination = path.resolve(config.output, 'search.json');
 
   return input => {

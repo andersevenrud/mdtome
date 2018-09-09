@@ -34,10 +34,10 @@ const buildStatic = require('../generator/static.js');
 
 module.exports = (config, options, resolver) => {
   const generators = options.pdf ? [] : [
-    buildStatic(config, resolver),
-    buildSitemap(config, resolver),
-    buildSearchDatabase(config, resolver),
-    buildWebpack(config, resolver)
+    buildStatic(config, options, resolver),
+    buildSitemap(config, options, resolver),
+    buildSearchDatabase(config, options, resolver),
+    buildWebpack(config, options, resolver)
   ];
 
   const generate = input => Promise.all(generators.map(gen => {

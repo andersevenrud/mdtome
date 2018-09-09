@@ -57,12 +57,10 @@ const {verbose, input, output, watch, pdf} = argv({
 
 // Create config for mdtome
 const config = clean({
-  verbose,
   title: book.title || path.basename(process.cwd()),
   input: input || book.root,
   logging: true,
   output,
-  watch,
   structure: {
     ...defaultConfiguration.structure,
     ...(book.structure || {})
@@ -76,12 +74,18 @@ const config = clean({
 });
 
 // Use the mdtome API
-mdtome(config, {pdf})
+mdtome(config, {verbose, watch, pdf})
   .then(() => {
     signale.success('Done');
-    process.exit(0);
+
+    if (!watch) {
+      process.exit(0);
+    }
   })
   .catch(error => {
     signale.fatal(error);
-    process.exit(1);
+
+    if (!watch) {
+      process.exit(1);
+    }
   });

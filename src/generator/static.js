@@ -38,20 +38,22 @@ module.exports = config => {
       .then(() => copy(source, destination))
       .then(() => {
         if (config.logging) {
-          signale.success('Copied', path.relative(config.output, destination))
+          signale.success('Copied', path.relative(config.output, destination));
         }
       })
       .catch(e => signale.warn(e));
   };
 
   return input => {
+    const internals = input.partial ? [] : config.web.resources;
+
     const promises = input.resources.map(resource => {
       const source = path.resolve(config.input, resource);
       const destination = path.resolve(config.output, resource);
 
       return perform(source, destination);
     })
-      .concat(config.web.resources.map(resource => {
+      .concat(internals.map(resource => {
         const source = path.resolve(__dirname, '..', 'resources', resource);
         const destination = path.resolve(config.output, resource);
 

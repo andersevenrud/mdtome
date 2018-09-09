@@ -36,8 +36,6 @@ module.exports = {
   title: 'mdtome',
   input: path.resolve(root),
   output: path.resolve(root, '_book'),
-  verbose: false,
-  watch: false,
   logging: false,
   plugins: [],
   minify: {

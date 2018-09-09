@@ -28,17 +28,37 @@
  * @licence MIT
  */
 const path = require('path');
+const signale = require('signale');
 const webpack = require('webpack');
 
-module.exports = config => {
+module.exports = (config, options) => {
+  let watching = false;
   const webpackConfig = require(path.resolve(__dirname, '../../webpack.config.js'));
   webpackConfig.output = webpackConfig.output || {};
   webpackConfig.output.path = path.resolve(config.output);
 
-  return input => {
-    return new Promise((resolve, reject) => {
-      const compiler = webpack(webpackConfig);
+  const compiler = webpack(webpackConfig);
 
+  return input => {
+    if (watching) {
+      return Promise.resolve(input);
+    }
+
+    if (options.watch) {
+      watching = true;
+
+      compiler.watch({}, (err, stats) => {
+        if (err) {
+          signale.fatal(err);
+        } else if (config.logging) {
+          console.log(stats.toString());
+        }
+      });
+
+      return Promise.resolve(input);
+    }
+
+    return new Promise((resolve, reject) => {
       compiler.run((err, stats) => {
         return err ? reject(err) : resolve(stats.toString());
       });

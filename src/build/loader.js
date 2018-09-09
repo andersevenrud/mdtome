@@ -29,6 +29,7 @@
  */
 const path = require('path');
 const fg = require('fast-glob');
+const signale = require('signale');
 const {readFile, readFileSync} = require('fs-extra');
 
 module.exports = (config, options) => {
@@ -45,19 +46,29 @@ module.exports = (config, options) => {
       .replace('README.html', 'index.html');
 
     return readFile(source, 'utf8')
-      .then(contents => ({filename, source, destination, contents}));
+      .then(contents => ({filename, source, destination, contents}))
+      .catch(error => {
+        if (config.logging) {
+          signale.warn(error);
+        }
+
+        return null;
+      });
   }));
 
-  const load = () => {
+  const load = (changed = []) => {
     const template = options.pdf
       ? readFileSync(config.pdf.template, 'utf8')
       : readFileSync(config.web.template, 'utf8');
 
     const summary = readFileSync(path.resolve(config.input, config.structure.summary), 'utf8');
+    const partial = changed.length > 0;
+    const list = partial ? Promise.resolve(changed) : fg(fgp, fgo);
 
-    return fg(fgp, fgo)
+    return list
       .then(readFiles)
-      .then(files => ({files, template, summary}));
+      .then(files => files.filter(iter => !!iter))
+      .then(files => ({partial, files, template, summary}));
   };
 
   return {load};

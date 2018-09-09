@@ -1,6 +1,6 @@
 {
   "name": "mdtome",
-  "version": "0.6.5",
+  "version": "0.6.7",
   "description": "Markdown Tome is a Gitbook clone",
   "main": "index.js",
   "scripts": {
@@ -26,6 +26,7 @@
     "@babel/preset-env": "^7.0.0",
     "@babel/runtime": "^7.0.0",
     "babel-loader": "^8.0.2",
+    "chokidar": "^2.0.4",
     "css-loader": "^1.0.0",
     "deepmerge": "^2.1.1",
     "ejs": "^2.6.1",
