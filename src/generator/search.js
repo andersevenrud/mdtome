@@ -45,7 +45,11 @@ module.exports = (config, resolver) => {
     });
 
     return writeJson(destination, json)
-      .then(() => signale.success('Wrote', path.relative(config.output, destination)))
+      .then(() => {
+        if (config.logging) {
+          signale.success('Wrote', path.relative(config.output, destination))
+        }
+      })
       .catch(e => signale.warn(e));
   };
 };

@@ -56,7 +56,11 @@ module.exports = (config, resolver) => {
       const sitemap = xml.end({pretty: true});
 
       return writeFile(destination, sitemap)
-        .then(() => signale.success('Wrote', path.relative(config.output, destination)))
+        .then(() => {
+          if (config.logging) {
+            signale.success('Wrote', path.relative(config.output, destination))
+          }
+        })
         .catch(e => signale.warn(e));
     }
 

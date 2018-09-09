@@ -32,11 +32,13 @@ const root = process.cwd();
 const npm = require(path.resolve(__dirname, '../package.json'));
 
 module.exports = {
+  url: 'http://localhost',
+  title: 'mdtome',
   input: path.resolve(root),
   output: path.resolve(root, '_book'),
-  dist: path.resolve(__dirname, '..', 'dist'),
   verbose: false,
   watch: false,
+  logging: true,
   plugins: [],
   minify: {
     collapseWhitespace: true
@@ -57,11 +59,11 @@ module.exports = {
     glossary: 'GLOSSARY.md',
     languages: 'LANGS.md'
   },
-  template: {
-    title: 'mdtome',
-    url: 'http://localhost',
-    language: 'en',
-    filename: path.resolve(__dirname, 'template.ejs'),
+  pdf: {
+    template: path.resolve(__dirname, 'templates/pdf.ejs'),
+  },
+  web: {
+    template: path.resolve(__dirname, 'templates/web.ejs'),
     scripts: [
       'main.js'
     ],

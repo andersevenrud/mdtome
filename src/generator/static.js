@@ -36,7 +36,11 @@ module.exports = config => {
   const perform = (source, destination) => {
     return  ensureDir(path.dirname(destination))
       .then(() => copy(source, destination))
-      .then(() => signale.success('Copied', path.relative(config.output, destination)))
+      .then(() => {
+        if (config.logging) {
+          signale.success('Copied', path.relative(config.output, destination))
+        }
+      })
       .catch(e => signale.warn(e));
   };
 
@@ -47,7 +51,7 @@ module.exports = config => {
 
       return perform(source, destination);
     })
-      .concat(config.template.resources.map(resource => {
+      .concat(config.web.resources.map(resource => {
         const source = path.resolve(__dirname, '..', 'resources', resource);
         const destination = path.resolve(config.output, resource);
 

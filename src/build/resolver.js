@@ -64,7 +64,7 @@ module.exports = config => {
 
   const url = filename => {
     const relative = link(filename);
-    return config.template.url.replace(/\/?$/, '/') + relative;
+    return config.url.replace(/\/?$/, '/') + relative;
   };
 
   return {link, url};

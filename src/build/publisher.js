@@ -42,7 +42,11 @@ module.exports = config => {
         .then(() => {
           const contents = production ? minify(html, config.minify) : html;
           return writeFile(file.destination, contents)
-            .then(() => signale.success('Wrote', path.relative(config.output, file.destination)))
+            .then(() => {
+              if (config.logging) {
+                signale.success('Wrote', path.relative(config.output, file.destination))
+              }
+            })
             .catch(e => signale.warn(e));
         });
     });

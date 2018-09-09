@@ -53,16 +53,16 @@ const renderHtml = (config, resolver, plugins) => base => (template, menu, metad
     body_after: '', // TODO
     header_before: '', // TODO
     header_after: '', // TODO
-    scripts: config.template.scripts.map(res),
-    styles: config.template.styles.map(res),
-    baseTitle: config.template.title,
-    language: config.template.language,
+    scripts: config.web.scripts.map(res),
+    styles: config.web.styles.map(res),
+    baseTitle: config.title,
+    language: 'en',
     metadata: {
       description: '',
-      ...config.template.metadata,
+      ...config.web.metadata,
       ...metadata
     },
-    title: [metadata.title, config.template.title]
+    title: [metadata.title, config.title]
       .filter(str => !!str)
       .join(' - ')
   };

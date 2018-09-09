@@ -27,10 +27,8 @@ Create a file named `.mdtome`
 ```javascript
 module.exports = {
   input: '.',
-  template: {
-    title: 'My Awesome Tome',
-    url: 'http://my-website.com'
-  }
+  title: 'My Awesome Tome',
+  url: 'http://my-website.com'
 };
 ```
 

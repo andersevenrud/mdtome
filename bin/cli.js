@@ -58,7 +58,9 @@ const {verbose, input, output, watch} = argv({
 // Create config for mdtome
 const config = clean({
   verbose,
+  title: book.title || path.basename(process.cwd()),
   input: input || book.root,
+  logging: true,
   output,
   watch,
   structure: {
@@ -66,7 +68,6 @@ const config = clean({
     ...(book.structure || {})
   },
   template: {
-    title: book.title || path.basename(process.cwd()),
     metadata: {
       description: book.description || ''
     }

@@ -49,7 +49,7 @@ module.exports = config => {
   }));
 
   const load = () => {
-    const template = readFileSync(config.template.filename, 'utf8');
+    const template = readFileSync(config.web.template, 'utf8');
     const summary = readFileSync(path.resolve(config.input, config.structure.summary), 'utf8');
 
     return fg(fgp, fgo)
