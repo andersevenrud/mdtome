@@ -32,7 +32,7 @@ const fg = require('fast-glob');
 const signale = require('signale');
 const {readFile, readFileSync} = require('fs-extra');
 
-module.exports = (config, options) => {
+module.exports = (config, options, resolver, plugins) => {
   const fgp = '**/*.md';
   const fgo = {cwd: config.input, ignore: [
     config.structure.summary,
@@ -57,7 +57,7 @@ module.exports = (config, options) => {
   }));
 
   const load = (changed = []) => {
-    const template = options.pdf
+    const templateRaw = options.pdf
       ? readFileSync(config.pdf.template, 'utf8')
       : readFileSync(config.web.template, 'utf8');
 
@@ -65,10 +65,13 @@ module.exports = (config, options) => {
     const partial = changed.length > 0;
     const list = partial ? Promise.resolve(changed) : fg(fgp, fgo);
 
-    return list
-      .then(readFiles)
-      .then(files => files.filter(iter => !!iter))
-      .then(files => ({partial, files, template, summary}));
+    return plugins.template(templateRaw, options.pdf)
+      .then(template => {
+        return list
+          .then(readFiles)
+          .then(files => files.filter(iter => !!iter))
+          .then(files => ({partial, files, template, summary}));
+      });
   };
 
   return {load};

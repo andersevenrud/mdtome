@@ -43,6 +43,8 @@ const createGenerators = require('./build/generators.js');
  */
 const initializePlugins = config => {
   const iface = instance => ({
+    //template: (html, pdf) => Promise.resolve(html),
+    //render: html => Promise.resolve(html),
     ...instance
   });
 
@@ -65,7 +67,22 @@ const initializePlugins = config => {
     .filter(plugin => !!plugin)
     .map(plugin => Promise.resolve(plugin));
 
-  return Promise.all(queue);
+  const run = plugins => (method, ...args) => {
+    const methods = plugins.map(p => p[method])
+      .filter(fn => typeof fn === 'function');
+
+    return methods.reduce((promise, item) => {
+      return promise.then((...result) => {
+        return Promise.resolve(item(...result));
+      });
+    }, Promise.resolve(...args));
+  };
+
+  return Promise.all(queue)
+    .then(plugins => ({
+      render: html => run(plugins)('render', html),
+      template: (html, pdf) => run(plugins)('template', html, pdf)
+    }));
 };
 
 

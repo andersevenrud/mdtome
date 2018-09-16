@@ -87,7 +87,8 @@ const renderHtml = (config, resolver, plugins) => base => (template, menu, metad
     async: true
   };
 
-  return ejs.render(template, data, opts);
+  return ejs.render(template, data, opts)
+    .then(html => plugins.render(html));
 };
 
 module.exports = (config, options, resolver, plugins) => {
