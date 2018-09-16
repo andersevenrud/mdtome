@@ -63,6 +63,7 @@ const renderHtml = (config, resolver, plugins) => base => (template, menu, metad
   const data = {
     menu,
     body: markdown,
+    url: config.url,
     scripts: config.web.scripts.map(res),
     styles: config.web.styles.map(res),
     addons: config.web.addons,

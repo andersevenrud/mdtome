@@ -27,11 +27,10 @@
  * @author  Anders Evenrud <andersevenrud@gmail.com>
  * @licence MIT
  */
-const SEARCH_FILE = window.location.origin.replace(/\/$/, '') + '/search.json';
 
 import {h, app} from 'hyperapp';
 
-const fetchDb = () => {
+const fetchDb = filename => {
   let cache;
   let busy = false;
 
@@ -42,7 +41,7 @@ const fetchDb = () => {
       return Promise.resolve(cache);
     }
 
-    busy = fetch(SEARCH_FILE)
+    busy = fetch(filename)
       .then(response => response.json())
       .then(json => {
         cache = json;
@@ -72,7 +71,10 @@ const init = () => {
   const s = document.getElementById('search');
   const body = document.querySelector('body');
 
-  const store = fetchDb();
+  const baseUrl = body.getAttribute('data-url');
+  const filename = baseUrl.replace(/\/$/, '') + '/search.json';
+
+  const store = fetchDb(filename);
   const main = document.querySelector('main');
   const content = document.getElementById('article');
   const results = document.getElementById('search-results');
