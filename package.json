@@ -1,6 +1,6 @@
 {
   "name": "mdtome",
-  "version": "0.6.7",
+  "version": "0.7.0",
   "description": "Markdown Tome is a Gitbook clone",
   "main": "index.js",
   "scripts": {
