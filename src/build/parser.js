@@ -62,15 +62,10 @@ const renderHtml = (config, resolver, plugins) => base => (template, menu, metad
 
   const data = {
     menu,
-    menu_before: '', // TODO
-    menu_after: '', // TODO
     body: markdown,
-    body_before: '', // TODO
-    body_after: '', // TODO
-    header_before: '', // TODO
-    header_after: '', // TODO
     scripts: config.web.scripts.map(res),
     styles: config.web.styles.map(res),
+    addons: config.web.addons,
     baseTitle: config.title,
     language: 'en',
     metadata: {

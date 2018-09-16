@@ -8,6 +8,7 @@
 * Produces optimized builds
 * Creates sitemaps by default
 * Can generate PDFs
+* Google Analytics and Adsense built in by default
 
 ## Requirements
 
@@ -68,6 +69,18 @@ mdtome({
 }) // -> Promise
 ```
 
+#### Plugins
+
+```
+module.exports = {
+  // Per page render
+  render: html => Promise.resolve(html)
+
+  // Template loading
+  template => (html, pdf) => Promise.resolve(html)
+};
+```
+
 ## Benchmarks
 
 Using https://github.com/bagder/everything-curl
@@ -82,8 +95,6 @@ System: i5-4670K + SSD
 * Generation: Glossary
 * Generation: Languages
 * Plugin: Typed quotes
-* Plugin: Google Analytics
-* Plugin: Google AdSense
 * Customization: CSS/JS entry points
 * UI: Highlight links based on scroll
 

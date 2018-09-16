@@ -77,6 +77,15 @@ module.exports = {
       description: '',
       author: '',
       generator: `mdtome ${npm.version}`
+    },
+    addons: {
+      ga: {
+        token: null
+      },
+      adsense: {
+        client: null,
+        slot: null
+      }
     }
   }
 };
