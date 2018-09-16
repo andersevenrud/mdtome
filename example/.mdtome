@@ -1,0 +1,11 @@
+module.exports = {
+  url: 'https://andersevenrud.github.io/mdtome',
+  "title": "mdtome example",
+  web: {
+    addons: {
+      "ga": {
+        "token": "UA-35975596-1"
+      }
+    }
+  }
+};
