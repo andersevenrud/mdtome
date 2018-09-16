@@ -1,6 +1,12 @@
+---
+description: mdtome - A gitbook clone
+---
+
 # mdtome
 
 **Markdown Tome** - A Gitbook clone.
+
+![Logo](logo.png)
 
 * Fast
 * Simple

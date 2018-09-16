@@ -1,3 +1,7 @@
+---
+description: mdtome - configuration
+---
+
 # Configuration
 
 Create a file named `.mdtome`

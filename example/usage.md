@@ -1,3 +1,7 @@
+---
+description: mdtome - usage
+---
+
 # Usage
 
 The generated output will be in `_book/` by default.
