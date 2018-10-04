@@ -95,8 +95,8 @@ aside {
     padding: 0;
 
     li {
-      margin-top: 0.25em;
-      margin-bottom: 0.25em;
+      margin-top: 0.4em;
+      margin-bottom: 0.4em;
     }
 
     ul {
@@ -207,6 +207,22 @@ pre {
     padding: 1em;
     display: block;
     overflow: auto;
+  }
+}
+
+table {
+  border: 1px solid #ddd;
+  border-collapse: collapse;
+  width: 100%;
+
+  tbody tr:nth-child(2n) {
+    background-color: #f8f8f8;
+  }
+
+  td,
+  th {
+    padding: 0.5em;
+    border: 1px solid #ddd;
   }
 }
 
