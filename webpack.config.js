@@ -42,7 +42,7 @@ module.exports = {
         test: /\.(svg|png|jpe?g|gif|webp)$/,
         use: [
           {
-            loader: 'file-loader'
+            loader: require.resolve('file-loader')
           }
         ]
       },
@@ -51,13 +51,13 @@ module.exports = {
         use: [
           MiniCssExtractPlugin.loader,
           {
-            loader: 'css-loader',
+            loader: require.resolve('css-loader'),
             options: {
               sourceMap: true
             }
           },
           {
-            loader: 'sass-loader',
+            loader: require.resolve('sass-loader'),
             options: {
               minimize,
               sourceMap: true
@@ -68,7 +68,7 @@ module.exports = {
       {
         test: /\.js$/,
         use: {
-          loader: 'babel-loader'
+          loader: require.resolve('babel-loader')
         }
       }
     ]
