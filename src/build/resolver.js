@@ -32,7 +32,7 @@ module.exports = config => {
   const strip = name => name
     .replace(/^\/+/, '')
     .replace(/\.md$/, '.html')
-    .replace(config.structure.readme.replace('.md', '.html'), 'index.html');
+    .replace(config.structure.readme.replace('.md', '.html'), ''/*'index.html'*/);
 
   const link = (str, base = '') => {
     if (str.match(/^https?:/) !== null) {
